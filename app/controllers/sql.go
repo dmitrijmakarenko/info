@@ -98,7 +98,6 @@ func getEntitySql(entity Entity) (DataEntity, error) {
 		return ret, err
 	}
 	columnNames, err := rows.Columns()
-	revel.INFO.Println("get Columns", columnNames)
 	ret.Columns = listColumns(entity)
 	var retRows [][]string
 	for rows.Next() {
