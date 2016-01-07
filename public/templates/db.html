@@ -1,0 +1,32 @@
+<div id="db-tables">
+    <div class="content-wrap">
+        <div class="selector-tabs">
+            <div class="selector-item" ng-click="toggle('tables')" ng-class="{'active': showTables}">Таблицы</div>
+            <div class="selector-item" ng-click="toggle('views')" ng-class="{'active': !showTables}">Представления</div>
+        </div>
+        <div class="selector-content">
+            <div class="tables-list" ng-show="showTables">
+                <div class="item" ng-repeat="table in tables">
+                    <div class="table-name">{{table.name}}</div>
+                    <div class="protected" ng-show="table.protected" ng-click="modify(table.name)">
+                        Защищено
+                    </div>
+                    <div class="non-protected" ng-show="!table.protected" ng-click="modify(table.name)">
+                        Не защищено
+                    </div>
+                </div>
+            </div>
+            <div class="tables-list views" ng-show="!showTables">
+                <div class="item" ng-repeat="view in views">
+                    <div class="table-name">{{view.name}}</div>
+                    <div class="protected" ng-show="view.protected" ng-click="modify(view.name)">
+                        Защищено
+                    </div>
+                    <div class="non-protected" ng-show="!view.protected" ng-click="modify(view.name)">
+                        Не защищено
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

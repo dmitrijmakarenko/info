@@ -1,0 +1,17 @@
+[[set . "title" "Info"]]
+[[template "header.html" .]]
+
+<div id="app-container">
+    <leftpanel></leftpanel>
+    <div id="right-panel">
+        <div id="top-panel">
+            <informer></informer>
+        </div>
+        <div id="content">
+            <div ng-view></div>
+        </div>
+    </div>
+</div>
+
+
+[[template "footer.html" .]]

@@ -1,0 +1,16 @@
+{{set . "title" "Info"}}
+{{template "header.html" .}}
+
+{{template "layout-start.html" .}}
+    <h1>Index page</h1><br>
+{{template "layout-end.html" .}}
+
+<div class="container">
+  <div class="row">
+    <div class="span6">
+      {{template "flash.html" .}}
+    </div>
+  </div>
+</div>
+
+{{template "footer.html" .}}

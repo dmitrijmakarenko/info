@@ -1,0 +1,15 @@
+<div id="configs">
+    <div button func="generateDB" text="Cоздать"></div>
+    <div button func="clearDB" text="Сбросить"></div>
+    <div class="valid-db">
+        <div button func="validateDB" text="Проверить" loading="true"></div>
+        <div class="res-wrap" ng-show="infoValidateShow">
+            <div class="info">
+                <div>Объектов создано - {{validateRes.totalCfgTables}}</div>
+                <div>Объектов в базе данных - {{validateRes.totalCfgTables}}</div>
+                <div>Остальных объектов в базе данных - {{validateRes.cntExcessTables}}</div>
+            </div>
+            <div class="close" ng-click="hideInfoValidate()">Закрыть</div>
+        </div>
+    </div>
+</div>

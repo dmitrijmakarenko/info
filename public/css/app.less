@@ -1,0 +1,174 @@
+@import "custom";
+
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  min-width: 1250px;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-y: hidden;
+  font-family: "Helvetica Neue", helvetica, "Liberation Sans", arial, sans-serif;
+  font-size: 11px;
+  color: @text-color;
+}
+body * {
+  font-family: "Helvetica Neue", helvetica, "Liberation Sans", arial, sans-serif;
+  font-size: 14px;
+}
+:before, :after {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+#left-panel {
+  position: absolute;
+  left: 0;
+  width: 180px;
+  top: 0;
+  bottom: 0;
+  background-color: @left-panel-background-color;
+
+  .menu-item {
+    height: 50px;
+    line-height: 50px;
+    border-bottom: 1px solid @left-panel-border-color;
+    width: 180px;
+    color: @left-panel-item-text-color;
+    cursor: pointer;
+    &.active {
+      background-color: @left-panel-item-active-bg-color;
+    }
+    .text {
+      text-align: right;
+      padding-right: 20px;
+      font-size: 16px;
+    }
+  }
+  .menu-item:hover:not(.active) {
+    background-color: @left-panel-item-hover-bg-color;
+  }
+
+  .logo {
+    height: 70px;
+    width: 100%;
+    border-bottom: 1px solid @left-panel-border-color;
+  }
+
+}
+#right-panel {
+  position: absolute;
+  right: 0;
+  left: 180px;
+  top: 0;
+  bottom: 0;
+  min-width: 1170px;
+  background-color: @content-bg-color;
+}
+
+#top-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 70px;
+  z-index: 10;
+  background-color: @top-panel-bg-color;
+  border-bottom: 1px solid @top-panel-border-color;
+}
+
+#content {
+  position: absolute;
+  left: 0;
+  top: 71px;
+  bottom: 0;
+  background-color: @content-bg-color;
+}
+
+.row {
+  height: 38px;
+  margin-bottom: 12px;
+}
+.desc, .cont {
+  float: left;
+}
+.desc {
+  height: 40px;
+  line-height: 40px;
+  width: 100px;
+  text-align: right;
+  margin-right: 20px;
+}
+.cont {
+  width: 150px;
+  dropdown > div {
+    width: 200px;
+  }
+}
+.btn-bar > * {
+  float: left;
+}
+
+.confirm-delete-dlg {
+  .txt {
+    text-align: center;
+    font-size: 16px;
+  }
+}
+
+.clear {
+  clear: both;
+}
+
+#configs {
+  margin-left: 15px;
+  margin-top: 15px;
+  .valid-db {
+    .res-wrap {
+      margin-top: 20px;
+      margin-left: 20px;
+      transition: 0.2s linear all;
+      opacity: 1;
+      &.ng-hide {
+        transition: 0.2s linear all;
+        opacity: 0;
+      }
+      .info {
+        position: relative;
+        background-color: #ffffff;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        border: 1px solid @basic-custom-color;
+        padding: 15px;
+      }
+      .info:after {
+        content: "";
+        position: absolute;
+        height: 16px;
+        width: 16px;
+        background-color: #ffffff;
+        top: -9px;
+        left: calc(~"50% - 8px");
+        border-top: 1px solid @basic-custom-color;
+        border-left: 1px solid @basic-custom-color;
+        transform: rotate(45deg);
+      }
+      .close {
+        cursor: pointer;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        font-size: 16px;
+        border-bottom-left-radius: 3px;
+        border-bottom-right-radius: 3px;
+        color: #ffffff;
+        background-color: @basic-custom-color;
+      }
+      .close:hover {
+        opacity: 0.7;
+      }
+    }
+  }
+}
