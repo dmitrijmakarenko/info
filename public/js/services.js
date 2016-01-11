@@ -23,10 +23,10 @@ infoSysServices.factory('Entity', ['$resource',
     function($resource) {
         return {
             List: $resource('/entities', {}, { go: { method:'POST', isArray: true }}),
-            Get: $resource('/get_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', returnData: '@returnData'} }}),
-            Create: $resource('/create_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
-            Update: $resource('/update_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
-            Remove: $resource('/remove_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            Get: $resource('/get_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            //Create: $resource('/create_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
+            //Update: $resource('/update_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
+            //Remove: $resource('/remove_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 

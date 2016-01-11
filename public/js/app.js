@@ -28,6 +28,18 @@ infoSys.config(['$routeProvider',
             when('/configs', {
                 templateUrl: 'public/templates/configs.html',
                 controller: 'configsCntl'
+            }).*/
+            when('/rules', {
+                templateUrl: 'public/templates/rules.html',
+                controller: 'rulesCntl'
+            }).
+            when('/tables', {
+                templateUrl: 'public/templates/tables.html',
+                controller: 'tablesCntl'
+            }).
+            when('/table/:tableId', {
+                templateUrl: 'public/templates/table.html',
+                controller: 'tableCntl'
             }).
             when('/accounts', {
                 templateUrl: 'public/templates/accounts.html',
@@ -36,7 +48,7 @@ infoSys.config(['$routeProvider',
             when('/groups', {
                 templateUrl: 'public/templates/groups.html',
                 controller: 'groupsCntl'
-            }).*/
+            }).
             when('/db', {
                 templateUrl: 'public/templates/db.html',
                 controller: 'dbCntl'

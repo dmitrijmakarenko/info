@@ -38,39 +38,61 @@ func (c App) Index() revel.Result {
 	return c.Render()
 }
 
+//func (c App) GetEntities() revel.Result {
+//	revel.INFO.Println("get configs")
+//	var out []map[string]string
+//	cfg := readXML()
+//	for _, ent := range cfg.Entities {
+//		var entity = make(map[string]string)
+//		entity["id"] = ent.Id
+//		entity["name"] = ent.Name
+//		entity["cntProps"] = strconv.Itoa(len(ent.Properties))
+//		out = append(out, entity)
+//	}
+//	return c.RenderJson(out)
+//}
+
+//func (c App) GetEntity(id string, returnData bool) revel.Result {
+//	cfg := readXML()
+//	ret := make(map[string]string)
+//	for _, ent := range cfg.Entities {
+//		if (ent.Id == id) {
+//			if (returnData) {
+//				data, err := getEntitySql(ent)
+//				if err != nil {
+//					ret["error"] = "get entity error";
+//					return c.RenderJson(ret)
+//				}
+//				return c.RenderJson(data)
+//			} else {
+//				return c.RenderJson(ent)
+//			}
+//		}
+//	}
+//	ret["error"] = "entity not found";
+//	return c.RenderJson(ret)
+//}
+
 func (c App) GetEntities() revel.Result {
-	revel.INFO.Println("get configs")
-	var out []map[string]string
-	cfg := readXML()
-	for _, ent := range cfg.Entities {
-		var entity = make(map[string]string)
-		entity["id"] = ent.Id
-		entity["name"] = ent.Name
-		entity["cntProps"] = strconv.Itoa(len(ent.Properties))
-		out = append(out, entity)
-	}
-	return c.RenderJson(out)
+//	var out []map[string]string
+//	entities := entityList();
+//	for _, ent := range entities {
+//		var entity = make(map[string]string)
+//		entity["id"] = ent.Id
+//		entity["name"] = ent.Name
+//		out = append(out, entity)
+//	}
+	return c.RenderJson(entityList())
 }
 
-func (c App) GetEntity(id string, returnData bool) revel.Result {
-	cfg := readXML()
+func (c App) GetEntity(id string) revel.Result {
 	ret := make(map[string]string)
-	for _, ent := range cfg.Entities {
-		if (ent.Id == id) {
-			if (returnData) {
-				data, err := getEntitySql(ent)
-				if err != nil {
-					ret["error"] = "get entity error";
-					return c.RenderJson(ret)
-				}
-				return c.RenderJson(data)
-			} else {
-				return c.RenderJson(ent)
-			}
-		}
+	data, err := entityGet(id)
+	if err != nil {
+		ret["error"] = "get entity error";
+		return c.RenderJson(ret)
 	}
-	ret["error"] = "entity not found";
-	return c.RenderJson(ret)
+	return c.RenderJson(data)
 }
 
 func (c App) CreateEntity(id string, name string, props string) revel.Result {

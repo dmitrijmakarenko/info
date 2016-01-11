@@ -12,7 +12,6 @@ var DB *sql.DB
 
 type DataEntity struct {
 	Id string `json:"id"`
-	Name string `json:"name"`
 	Columns []string `json:"columns"`
 	Rows [][]string `json:"rows"`
 }
@@ -88,17 +87,34 @@ func listViews() ([]string) {
 	return tableArray
 }
 
-func getEntitySql(entity Entity) (DataEntity, error) {
+func entityList() ([]string) {
+	var tableArray []string
+	rows, err := DB.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+	if err != nil {
+		revel.ERROR.Println("list table error", err)
+	}
+	for rows.Next() {
+		var tableName string
+		err := rows.Scan(&tableName)
+		if err != nil {
+			revel.ERROR.Println(err)
+		} else {
+			tableArray = append(tableArray, tableName)
+		}
+	}
+	return tableArray
+}
+
+func entityGet(table string) (DataEntity, error) {
 	var ret DataEntity
-	ret.Id = entity.Id
-	ret.Name = entity.Name
-	rows, err := DB.Query("SELECT * FROM " + entity.Id)
+	ret.Id = table
+	rows, err := DB.Query("SELECT * FROM " + table)
 	if err != nil {
 		revel.ERROR.Println("get table error", err)
 		return ret, err
 	}
 	columnNames, err := rows.Columns()
-	ret.Columns = listColumns(entity)
+	ret.Columns = listColumns(table)
 	var retRows [][]string
 	for rows.Next() {
 		var retRow []string
@@ -176,11 +192,11 @@ func listUsers() ([]string) {
 	return usersArray
 }
 
-func listColumns(entity Entity) ([]string) {
+func listColumns(table string) ([]string) {
 	var columnsArray []string
 	rows, err := DB.Query("SELECT  c.column_name, c.data_type FROM information_schema.tables t " +
 	"JOIN information_schema.columns c ON t.table_name = c.table_name " +
-	"WHERE t.table_schema = 'public' AND t.table_catalog = current_database() AND t.table_type = 'BASE TABLE' AND t.table_name = $1", entity.Id)
+	"WHERE t.table_schema = 'public' AND t.table_catalog = current_database() AND t.table_name = $1", table)
 	if err != nil {
 		revel.ERROR.Println("list columns error", err)
 	}
