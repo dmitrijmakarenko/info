@@ -259,3 +259,24 @@ func (c App) GetViews() revel.Result {
 	}
 	return c.RenderJson(ret)
 }
+
+func (c App) TestSelect() revel.Result {
+	user := "user1"
+	action := "select"
+	rows, err := DB.Query("SELECT rule FROM rules_p WHERE rule_role = $1 AND action = $2", user, action)
+	if err != nil {
+		revel.ERROR.Println("[test] select ", err)
+	} else {
+		for rows.Next() {
+			var rule string
+			err := rows.Scan(&rule)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				revel.INFO.Println(rule)
+			}
+		}
+	}
+	ret := make(map[string]string)
+	return c.RenderJson(ret)
+}

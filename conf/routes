@@ -7,15 +7,10 @@ module:testrunner
 GET     /                                       App.Index
 POST    /entities                               App.GetEntities
 POST    /get_entity                             App.GetEntity
-POST    /create_entity                          App.CreateEntity
-POST    /remove_entity                          App.RemoveEntity
-POST    /update_entity                          App.UpdateEntity
-POST    /generate_db                            App.GenerateDB
-POST    /validate_db                            App.ValidateDB
-POST    /clear_db                               App.ClearDB
 POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
+POST    /testdata                               App.TestSelect
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

@@ -1,10 +1,17 @@
-infoSys.controller('tablesCntl', function ($scope, Entity) {
+infoSys.controller('tablesCntl', function ($scope, Entity, TestFunc) {
     Entity.List.go(function(data) {
         $scope.entities = data;
     });
 
     $scope.getEntity = function(entity) {
         window.location = "#/table/" + entity;
+    };
+
+    $scope.test = function() {
+        console.log("test");
+        TestFunc.Select.go(function(data) {
+            console.log(data);
+        });
     }
 });
 

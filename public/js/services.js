@@ -47,3 +47,10 @@ infoSysServices.factory('DataBase', ['$resource',
             Protect: $resource('/protect', {}, { go: { method:'POST', isArray: false, params : {table: '@table'} }})
         };
     }]);
+
+infoSysServices.factory('TestFunc', ['$resource',
+    function($resource) {
+        return {
+            Select: $resource('/testdata', {}, { go: { method:'POST', isArray: false }})
+        };
+    }]);
