@@ -45,6 +45,10 @@ infoSys.config(['$routeProvider',
                 templateUrl: 'public/templates/accounts.html',
                 controller: 'accountsCntl'
             }).
+            when('/accounts/:account', {
+                templateUrl: 'public/templates/account.html',
+                controller: 'accountCntl'
+            }).
             when('/groups', {
                 templateUrl: 'public/templates/groups.html',
                 controller: 'groupsCntl'

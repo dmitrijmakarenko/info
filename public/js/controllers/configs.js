@@ -1,5 +1,5 @@
 infoSys.controller('configsCntl', function ($scope, Config, $timeout) {
-    $scope.infoValidateShow = false;
+    /*$scope.infoValidateShow = false;
     $scope.validateRes = {};
 
     $scope.generateDB = function() {
@@ -25,5 +25,5 @@ infoSys.controller('configsCntl', function ($scope, Config, $timeout) {
     $scope.hideInfoValidate = function() {
         $scope.infoValidateShow = false;
         $scope.validateRes = {};
-    }
+    }*/
 });
