@@ -11,6 +11,7 @@ POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
 POST    /accounts                               App.GetAccounts
+POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
 
 # Ignore favicon requests

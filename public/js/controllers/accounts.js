@@ -17,9 +17,13 @@ infoSys.controller('accountsCntl', function ($scope, Accounts) {
 infoSys.controller('accountCntl', function ($scope, $routeParams) {
     var account = $routeParams.account;
 
-    if (account != "!new") {
-        $scope.createMode = true;
-    } else {
-        $scope.createMode = false;
+    $scope.createMode = (account != "!new");
+
+    $scope.saveSettings = function() {
+        if (account == "!new") {
+
+        } else {
+
+        }
     }
 });

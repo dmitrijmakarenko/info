@@ -38,6 +38,16 @@ type AccountsList struct {
 	Accounts []AccountItem `json:"accounts"`
 }
 
+type RuleItem struct {
+	Id string `json:"id"`
+	Desc string `json:"desc"`
+}
+
+type RulesList struct {
+	Error  string `json:"error"`
+	Rules []RuleItem `json:"rules"`
+}
+
 type TableDB struct {
 	Name string `json:"name"`
 	Protected bool `json:"protected"`
@@ -285,6 +295,30 @@ func (c App) GetAccounts() revel.Result {
 				account := AccountItem{}
 				account.Id = id
 				ret.Accounts = append(ret.Accounts, account)
+			}
+		}
+	}
+	return c.RenderJson(ret)
+}
+
+func (c App) GetRules() revel.Result {
+	var ret RulesList
+	rows, err := DB.Query("SELECT rule, rule_desc FROM rules")
+	if err != nil {
+		revel.ERROR.Println("[get rules]", err)
+		ret.Error = err.Error()
+	} else {
+		for rows.Next() {
+			var id string
+			var desc string
+			err := rows.Scan(&id, &desc)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				rule := RuleItem{}
+				rule.Id = id
+				rule.Desc = desc
+				ret.Rules = append(ret.Rules, rule)
 			}
 		}
 	}

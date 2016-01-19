@@ -47,6 +47,14 @@ infoSysServices.factory('Accounts', ['$resource',
         };
     }]);
 
+infoSysServices.factory('Rules', ['$resource',
+    function($resource) {
+        return {
+            List: $resource('/rules', {}, { go: { method:'POST', isArray: false }})
+            //Get: $resource('/account', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+        };
+    }]);
+
 infoSysServices.factory('TestFunc', ['$resource',
     function($resource) {
         return {

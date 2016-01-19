@@ -1,3 +1,11 @@
-<div>
-    Rules
+<div id="rules-list">
+    <div>
+        <div class="rules">
+            <div class="item" ng-repeat="rule in rules">
+                <div>{{rule.id}}</div>
+                <div>{{rule.desc}}</div>
+            </div>
+        </div>
+        <!--<div class="add-account link" ng-click="go('!new')">Создать</div>-->
+    </div>
 </div>
