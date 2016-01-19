@@ -30,21 +30,20 @@ infoSysServices.factory('Entity', ['$resource',
         };
     }]);
 
-infoSysServices.factory('Config', ['$resource',
-    function($resource) {
-        return {
-            GenerateDB: $resource('/generate_db', {}, { go: { method:'POST', isArray: false }}),
-            ValidateDB: $resource('/validate_db', {}, { go: { method:'POST', isArray: false }}),
-            ClearDB: $resource('/clear_db', {}, { go: { method:'POST', isArray: false }})
-        };
-    }]);
-
 infoSysServices.factory('DataBase', ['$resource',
     function($resource) {
         return {
             GetTables: $resource('/tables', {}, { go: { method:'POST', isArray: true }}),
             GetViews: $resource('/views', {}, { go: { method:'POST', isArray: true }}),
             Protect: $resource('/protect', {}, { go: { method:'POST', isArray: false, params : {table: '@table'} }})
+        };
+    }]);
+
+infoSysServices.factory('Accounts', ['$resource',
+    function($resource) {
+        return {
+            List: $resource('/accounts', {}, { go: { method:'POST', isArray: false }}),
+            Get: $resource('/account', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 

@@ -10,6 +10,7 @@ POST    /get_entity                             App.GetEntity
 POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
+POST    /accounts                               App.GetAccounts
 POST    /testdata                               App.TestSelect
 
 # Ignore favicon requests
