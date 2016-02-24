@@ -1,6 +1,9 @@
 package controllers
 
-import "github.com/robfig/revel"
+import (
+	"github.com/robfig/revel"
+	"strings"
+)
 
 type GroupCntl struct {
 	*revel.Controller
@@ -21,12 +24,23 @@ type GroupSettings struct {
 	Name string  `json:"name"`
 }
 
+func CreateGroupTable() (err error) {
+	_, err = DB.Exec("CREATE TABLE sys_groups ( id uuid NOT NULL, name name ) WITH (OIDS=FALSE); ALTER TABLE sys_groups OWNER TO postgres;")
+	return err
+}
+
 func (c GroupCntl) List() revel.Result {
 	var ret GroupsList
 	rows, err := DB.Query("SELECT id, name FROM sys_groups")
 	if err != nil {
-		revel.ERROR.Println("[get groups]", err)
-		ret.Error = err.Error()
+		if strings.Contains(err.Error(), "does not exist") {
+			err = CreateGroupTable();
+			if err != nil {
+				ret.Error = err.Error()
+			}
+		} else {
+			ret.Error = err.Error()
+		}
 	} else {
 		for rows.Next() {
 			var id string
