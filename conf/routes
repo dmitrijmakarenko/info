@@ -11,12 +11,13 @@ POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
 POST    /accounts                               App.GetAccounts
-POST    /groups                                 App.GetGroups
-POST    /group_update                           App.GroupUpdate
-POST    /group                                  App.GroupGet
-POST    /group_delete                           App.GroupDelete
 POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
+
+POST    /groups                                 GroupCntl.List
+POST    /group_update                           GroupCntl.Update
+POST    /group                                  GroupCntl.Get
+POST    /group_delete                           GroupCntl.Delete
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
