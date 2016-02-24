@@ -29,15 +29,6 @@ type Config struct {
 	Entities []Entity
 }
 
-type AccountItem struct {
-	Id string `json:"id"`
-}
-
-type AccountsList struct {
-	Error string `json:"error"`
-	Accounts []AccountItem `json:"accounts"`
-}
-
 type RuleItem struct {
 	Id string `json:"id"`
 	Desc string `json:"desc"`
@@ -275,28 +266,6 @@ func (c App) GetViews() revel.Result {
 		tableItem.Protected = protect
 		tableItem.Name = table
 		ret = append(ret, tableItem)
-	}
-	return c.RenderJson(ret)
-}
-
-func (c App) GetAccounts() revel.Result {
-	var ret AccountsList
-	rows, err := DB.Query("SELECT id FROM sys_users")
-	if err != nil {
-		revel.ERROR.Println("[get accounts]", err)
-		ret.Error = err.Error()
-	} else {
-		for rows.Next() {
-			var id string
-			err := rows.Scan(&id)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				account := AccountItem{}
-				account.Id = id
-				ret.Accounts = append(ret.Accounts, account)
-			}
-		}
 	}
 	return c.RenderJson(ret)
 }

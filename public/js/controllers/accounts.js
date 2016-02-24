@@ -14,16 +14,27 @@ infoSys.controller('accountsCntl', function ($scope, Accounts) {
     });
 });
 
-infoSys.controller('accountCntl', function ($scope, $routeParams) {
+infoSys.controller('accountCntl', function ($scope, $routeParams, Accounts) {
     var account = $routeParams.account;
 
     $scope.createMode = (account != "!new");
 
+    if (account != "!new") {
+        Accounts.Get.go({id: account}, function(data) {
+            console.log(data);
+            $scope.id = account;
+            $scope.name = data.name;
+            $scope.position = data.position;
+        });
+    }
+
     $scope.saveSettings = function() {
-        if (account == "!new") {
-
-        } else {
-
-        }
+        var compileSettings = {};
+        compileSettings.id = $scope.id;
+        compileSettings.name = $scope.name;
+        compileSettings.position = $scope.position;
+        Accounts.Update.go({create: (account == "!new"), settings: JSON.stringify(compileSettings)}, function(data) {
+            console.log(data);
+        });
     }
 });

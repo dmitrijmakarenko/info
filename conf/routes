@@ -10,9 +10,12 @@ POST    /get_entity                             App.GetEntity
 POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
-POST    /accounts                               App.GetAccounts
 POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
+
+POST    /accounts                               UsersCntl.List
+POST    /account                                UsersCntl.Get
+POST    /account_update                         UsersCntl.Update
 
 POST    /groups                                 GroupCntl.List
 POST    /group_update                           GroupCntl.Update
