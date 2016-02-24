@@ -14,16 +14,36 @@ infoSys.controller('groupsCntl', function ($scope, Groups) {
     });
 });
 
-infoSys.controller('groupCntl', function ($scope, $routeParams) {
+infoSys.controller('groupCntl', function ($scope, $routeParams, Groups) {
     var group = $routeParams.group;
 
     $scope.createMode = (group != "!new");
 
-    $scope.saveSettings = function() {
-        if (group == "!new") {
-
-        } else {
-
-        }
+    if (group != "!new") {
+        Groups.Get.go({id: group}, function(data) {
+            $scope.name = data.name;
+        });
     }
+
+    $scope.saveSettings = function() {
+        Groups.Update.go({id: group, name: $scope.name}, function(data) {
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Отдел сохранен");
+                window.location = "#/groups/";
+            }
+        });
+    };
+
+    $scope.deleteGroup = function() {
+        Groups.Delete.go({id: group}, function(data) {
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Отдел удален");
+                window.location = "#/groups/";
+            }
+        });
+    };
 });

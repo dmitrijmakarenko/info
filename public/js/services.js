@@ -51,7 +51,9 @@ infoSysServices.factory('Groups', ['$resource',
     function($resource) {
         return {
             List: $resource('/groups', {}, { go: { method:'POST', isArray: false }}),
-            Get: $resource('/group', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            Get: $resource('/group', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
+            Update: $resource('/group_update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name'} }}),
+            Delete: $resource('/group_delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 

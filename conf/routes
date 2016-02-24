@@ -12,6 +12,9 @@ POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
 POST    /accounts                               App.GetAccounts
 POST    /groups                                 App.GetGroups
+POST    /group_update                           App.GroupUpdate
+POST    /group                                  App.GroupGet
+POST    /group_delete                           App.GroupDelete
 POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
 
