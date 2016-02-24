@@ -38,6 +38,16 @@ type AccountsList struct {
 	Accounts []AccountItem `json:"accounts"`
 }
 
+type GroupItem struct {
+	Id string `json:"id"`
+	Name string  `json:"name"`
+}
+
+type GroupsList struct {
+	Error string `json:"error"`
+	Groups []GroupItem `json:"groups"`
+}
+
 type RuleItem struct {
 	Id string `json:"id"`
 	Desc string `json:"desc"`
@@ -295,6 +305,30 @@ func (c App) GetAccounts() revel.Result {
 				account := AccountItem{}
 				account.Id = id
 				ret.Accounts = append(ret.Accounts, account)
+			}
+		}
+	}
+	return c.RenderJson(ret)
+}
+
+func (c App) GetGroups() revel.Result {
+	var ret GroupsList
+	rows, err := DB.Query("SELECT id, name FROM sys_groups")
+	if err != nil {
+		revel.ERROR.Println("[get groups]", err)
+		ret.Error = err.Error()
+	} else {
+		for rows.Next() {
+			var id string
+			var name string
+			err := rows.Scan(&id, &name)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				group := GroupItem{}
+				group.Id = id
+				group.Name = name
+				ret.Groups = append(ret.Groups, group)
 			}
 		}
 	}

@@ -53,6 +53,10 @@ infoSys.config(['$routeProvider',
                 templateUrl: 'public/templates/groups.html',
                 controller: 'groupsCntl'
             }).
+             when('/groups/:group', {
+                templateUrl: 'public/templates/group.html',
+                controller: 'groupCntl'
+            }).
             when('/db', {
                 templateUrl: 'public/templates/db.html',
                 controller: 'dbCntl'
