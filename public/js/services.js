@@ -44,7 +44,8 @@ infoSysServices.factory('Accounts', ['$resource',
         return {
             List: $resource('/accounts', {}, { go: { method:'POST', isArray: false }}),
             Get: $resource('/account', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
-            Update: $resource('/account_update', {}, { go: { method:'POST', isArray: false, params : {create: '@create', data: '@settings'} }})
+            Update: $resource('/account_update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', data: '@settings'} }}),
+            Delete: $resource('/account_delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 

@@ -11,6 +11,7 @@ type UsersCntl struct {
 
 type UserItem struct {
 	Id string `json:"id"`
+	Name string `json:"name"`
 }
 
 type UsersList struct {
@@ -26,19 +27,21 @@ type UserSettings struct {
 
 func (c UsersCntl) List() revel.Result {
 	var ret UsersList
-	rows, err := DB.Query("SELECT id FROM sys_users")
+	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM sys_users")
 	if err != nil {
 		revel.ERROR.Println("[get accounts]", err)
 		ret.Error = err.Error()
 	} else {
 		for rows.Next() {
 			var id string
-			err := rows.Scan(&id)
+			var name string
+			err := rows.Scan(&id, &name)
 			if err != nil {
 				revel.ERROR.Println(err)
 			} else {
 				user := UserItem{}
 				user.Id = id
+				user.Name = name
 				ret.Users = append(ret.Users, user)
 			}
 		}
@@ -47,7 +50,6 @@ func (c UsersCntl) List() revel.Result {
 }
 
 func (c UsersCntl) Get(id string) revel.Result {
-	revel.INFO.Println("[get user]", id)
 	var ret UserSettings
 	rows, err := DB.Query("SELECT name,position FROM sys_users WHERE id=$1", id)
 	if err != nil {
@@ -63,8 +65,6 @@ func (c UsersCntl) Get(id string) revel.Result {
 			if err != nil {
 				revel.ERROR.Println(err)
 			} else {
-				revel.INFO.Println("[get user name]", name)
-				revel.INFO.Println("[get user position]", position)
 				ret.Id = id
 				ret.Name = name
 				ret.Position = position
@@ -74,23 +74,32 @@ func (c UsersCntl) Get(id string) revel.Result {
 	return c.RenderJson(ret)
 }
 
-func (c UsersCntl) Update(create bool,data string) revel.Result {
+func (c UsersCntl) Update(id string, data string) revel.Result {
 	revel.INFO.Println("[update user data]", data)
-	revel.INFO.Println("[update user create]", create)
 	ret := make(map[string]string)
 	var settings UserSettings
 	err := json.Unmarshal([]byte(data), &settings)
 	if err != nil {
 		ret["error"] = "settings error format";
 	} else {
-		if create {
+		if id == "!new" {
 			_, err = DB.Exec("INSERT INTO sys_users(id, name, position) VALUES ($1, $2, $3)", settings.Id, settings.Name, settings.Position)
 		} else {
-			_, err = DB.Exec("UPDATE sys_users SET id=$1, name=$2, position=$3 WHERE id=$1", settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("UPDATE sys_users SET id=$2, name=$3, position=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
 		}
 		if err != nil {
 			ret["error"] = err.Error();
 		}
+	}
+	return c.RenderJson(ret)
+}
+
+func (c UsersCntl) Delete(id string) revel.Result {
+	ret := make(map[string]string)
+	_, err := DB.Exec("DELETE FROM sys_users WHERE id=$1", id)
+	if err != nil {
+		revel.ERROR.Println("[delete user]", err)
+		ret["error"] = err.Error()
 	}
 	return c.RenderJson(ret)
 }
