@@ -12,7 +12,7 @@
         <div class="users-group">
             <div class="title">Пользователи в группе:</div>
             <div class="list">
-                <div class="item" ng-repeat="user in groupUsers">
+                <div class="item" ng-repeat="user in members" ng-click="removeMember(user.id)">
                     <div>{{user.name}}</div>
                 </div>
             </div>
@@ -20,7 +20,7 @@
         <div class="users-other">
             <div class="title">Остальные пользователи:</div>
             <div class="list">
-                <div class="item" ng-repeat="user in otherUsers">
+                <div class="item" ng-repeat="user in users" ng-click="addMember(user.id)">
                     <div>{{user.name}}</div>
                 </div>
             </div>

@@ -3,6 +3,8 @@ package controllers
 import (
 	"github.com/robfig/revel"
 	"strings"
+	"encoding/json"
+	"github.com/nu7hatch/gouuid"
 )
 
 type GroupCntl struct {
@@ -12,6 +14,10 @@ type GroupCntl struct {
 type GroupItem struct {
 	Id string `json:"id"`
 	Name string  `json:"name"`
+}
+
+type GroupData struct {
+	Users []UserItem `json:"users"`
 }
 
 type GroupsList struct {
@@ -61,17 +67,33 @@ func (c GroupCntl) List() revel.Result {
 	return c.RenderJson(ret)
 }
 
-func (c GroupCntl) Update(id string, name string) revel.Result {
+func (c GroupCntl) Update(id string, data string) revel.Result {
 	ret := make(map[string]string)
 	var err error
+	var settings GroupSettings
+	err = json.Unmarshal([]byte(data), &settings)
 	if id == "!new" {
-		_, err = DB.Exec("INSERT INTO sys_groups(id, name) VALUES (uuid_generate_v4(), $1)", name)
+		uuid, _ := uuid.NewV4()
+		settings.Id = uuid.String()
 	} else {
-		_, err = DB.Exec("UPDATE sys_groups SET name=$2 WHERE id=$1", id, name)
+		settings.Id = id
 	}
 	if err != nil {
-		revel.ERROR.Println("[group update]", err)
-		ret["error"] = err.Error()
+		ret["error"] = "settings error format";
+	} else {
+		if id == "!new" {
+			_, err = DB.Exec("INSERT INTO sys_groups(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
+		} else {
+			_, err = DB.Exec("UPDATE sys_groups SET name=$2 WHERE id=$1", settings.Id, settings.Name)
+		}
+		_, err = DB.Exec("DELETE FROM sys_group_user WHERE group_id=$1", settings.Id)
+		for _, member := range settings.Members {
+			_, err = DB.Exec("INSERT INTO sys_group_user(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
+		}
+		if err != nil {
+			revel.ERROR.Println("[group update]", err)
+			ret["error"] = err.Error()
+		}
 	}
 	return c.RenderJson(ret)
 }
@@ -83,7 +105,7 @@ func (c GroupCntl) Get(id string) revel.Result {
 	rowsUsers, err := DB.Query("SELECT user_id FROM sys_group_user WHERE group_id=$1", id)
 	allUsers, err := usersList()
 	if err != nil {
-
+		revel.ERROR.Println(err)
 	} else {
 		for rowsUsers.Next() {
 			var id string
@@ -95,7 +117,6 @@ func (c GroupCntl) Get(id string) revel.Result {
 			}
 		}
 	}
-	revel.INFO.Println("[users list]", usersGroup)
 	var isMember bool
 	for _, user := range allUsers {
 		isMember = false
@@ -110,7 +131,6 @@ func (c GroupCntl) Get(id string) revel.Result {
 			ret.Users = append(ret.Users, user)
 		}
 	}
-
 	if err != nil {
 		revel.ERROR.Println("[get group]", err)
 		ret := make(map[string]string)
@@ -127,6 +147,18 @@ func (c GroupCntl) Get(id string) revel.Result {
 				ret.Name = name
 			}
 		}
+	}
+	return c.RenderJson(ret)
+}
+
+func (c GroupCntl) Data() revel.Result {
+	var ret GroupData
+	allUsers, err := usersList()
+	if err != nil {
+		ret := make(map[string]string)
+		ret["error"] = err.Error()
+	} else {
+		ret.Users = allUsers
 	}
 	return c.RenderJson(ret)
 }
