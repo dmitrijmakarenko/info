@@ -7,8 +7,8 @@
                 <tr>
                     <th ng-repeat="column in entity.columns">{{column}}</th>
                 </tr>
-                <tr ng-repeat="row in entity.rows">
-                    <td ng-repeat="dataRow in row">{{dataRow}}</td>
+                <tr ng-repeat="row in entity.rows track by $index">
+                    <td ng-repeat="dataRow in row track by $index">{{dataRow}}</td>
                 </tr>
             </table>
         </div>

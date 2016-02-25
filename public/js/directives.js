@@ -34,8 +34,8 @@ infoSysDirectives.directive('leftpanel', function () {
         controller: function($scope, $location, $browser) {
             $scope.items = [
                 {text : "Таблицы", path: "tables"},
-                {text : "Сотрудники", path: "accounts"},
-                {text : "Отделы", path: "groups"},
+                {text : "Пользователи", path: "accounts"},
+                {text : "Группы", path: "groups"},
                 {text : "Правила", path: "rules"},
                 {text : "База данных", path: "db"}
             ];

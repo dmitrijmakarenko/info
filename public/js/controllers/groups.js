@@ -21,9 +21,13 @@ infoSys.controller('groupCntl', function ($scope, $routeParams, Groups) {
 
     if (group != "!new") {
         Groups.Get.go({id: group}, function(data) {
+            console.log(data);
             $scope.name = data.name;
         });
     }
+
+    $scope.groupUsers = [{name: "u1"}, {name: "u2"}, {name: "u3"}];
+    $scope.otherUsers = [{name: "u111"}, {name: "u222"}];
 
     $scope.saveSettings = function() {
         Groups.Update.go({id: group, name: $scope.name}, function(data) {

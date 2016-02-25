@@ -7,9 +7,27 @@
             <!--<div class="desc">Должность</div><div class="cont"><input type="text" ng-model="name"></div>-->
         <!--</div>-->
 
-        <div class="btn-bar">
-            <div button func="saveSettings" text="Сохранить" loading="true"></div>
-            <div button ng-show="createMode" func="deleteGroup" text="Удалить" clazz="remove"></div>
+    </div>
+    <div class="users">
+        <div class="users-group">
+            <div class="title">Пользователи в группе:</div>
+            <div class="list">
+                <div class="item" ng-repeat="user in groupUsers">
+                    <div>{{user.name}}</div>
+                </div>
+            </div>
         </div>
+        <div class="users-other">
+            <div class="title">Остальные пользователи:</div>
+            <div class="list">
+                <div class="item" ng-repeat="user in otherUsers">
+                    <div>{{user.name}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="btn-bar">
+        <div button func="saveSettings" text="Сохранить" loading="true"></div>
+        <div button ng-show="createMode" func="deleteGroup" text="Удалить" clazz="remove"></div>
     </div>
 </div>

@@ -294,6 +294,28 @@ func (c App) GetRules() revel.Result {
 	return c.RenderJson(ret)
 }
 
+func usersList() (users []UserItem, err error) {
+	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM sys_users")
+	if err != nil {
+		revel.ERROR.Println("[get accounts]", err)
+	} else {
+		for rows.Next() {
+			var id string
+			var name string
+			err := rows.Scan(&id, &name)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				user := UserItem{}
+				user.Id = id
+				user.Name = name
+				users = append(users, user)
+			}
+		}
+	}
+	return users, err
+}
+
 func (c App) TestSelect() revel.Result {
 	user := "user1"
 	action := "select"

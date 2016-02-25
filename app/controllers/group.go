@@ -22,6 +22,8 @@ type GroupsList struct {
 type GroupSettings struct {
 	Id string `json:"id"`
 	Name string  `json:"name"`
+	Members []UserItem `json:"members"`
+	Users []UserItem `json:"users"`
 }
 
 func CreateGroupTable() (err error) {
@@ -76,7 +78,39 @@ func (c GroupCntl) Update(id string, name string) revel.Result {
 
 func (c GroupCntl) Get(id string) revel.Result {
 	var ret GroupSettings
+	var usersGroup []string
 	rows, err := DB.Query("SELECT name FROM sys_groups WHERE id=$1", id)
+	rowsUsers, err := DB.Query("SELECT user_id FROM sys_group_user WHERE group_id=$1", id)
+	allUsers, err := usersList()
+	if err != nil {
+
+	} else {
+		for rowsUsers.Next() {
+			var id string
+			err := rowsUsers.Scan(&id)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				usersGroup = append(usersGroup, id)
+			}
+		}
+	}
+	revel.INFO.Println("[users list]", usersGroup)
+	var isMember bool
+	for _, user := range allUsers {
+		isMember = false
+		for _, userGroup := range usersGroup {
+			if userGroup == user.Id {
+				isMember = true
+			}
+		}
+		if isMember {
+			ret.Members = append(ret.Members, user)
+		} else {
+			ret.Users = append(ret.Users, user)
+		}
+	}
+
 	if err != nil {
 		revel.ERROR.Println("[get group]", err)
 		ret := make(map[string]string)
