@@ -13,15 +13,8 @@ POST    /protect                                App.Protect
 POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
 
-POST    /accounts                               UsersCntl.List
-POST    /account                                UsersCntl.Get
-POST    /account_update                         UsersCntl.Update
-POST    /account_delete                         UsersCntl.Delete
-
-POST    /groups                                 GroupCntl.List
-POST    /group_update                           GroupCntl.Update
-POST    /group                                  GroupCntl.Get
-POST    /group_delete                           GroupCntl.Delete
+POST    /users/:action                          UsersCntl.:action
+POST    /groups/:action                         GroupCntl.:action
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

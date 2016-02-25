@@ -42,20 +42,20 @@ infoSysServices.factory('DataBase', ['$resource',
 infoSysServices.factory('Accounts', ['$resource',
     function($resource) {
         return {
-            List: $resource('/accounts', {}, { go: { method:'POST', isArray: false }}),
-            Get: $resource('/account', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
-            Update: $resource('/account_update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', data: '@settings'} }}),
-            Delete: $resource('/account_delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            List: $resource('/users/list', {}, { go: { method:'POST', isArray: false }}),
+            Get: $resource('/users/get', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
+            Update: $resource('/users/update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', data: '@settings'} }}),
+            Delete: $resource('/users/delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 
 infoSysServices.factory('Groups', ['$resource',
     function($resource) {
         return {
-            List: $resource('/groups', {}, { go: { method:'POST', isArray: false }}),
-            Get: $resource('/group', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
-            Update: $resource('/group_update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name'} }}),
-            Delete: $resource('/group_delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            List: $resource('/groups/list', {}, { go: { method:'POST', isArray: false }}),
+            Get: $resource('/groups/get', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
+            Update: $resource('/groups/update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name'} }}),
+            Delete: $resource('/groups/delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 
