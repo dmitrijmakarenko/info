@@ -63,8 +63,10 @@ infoSysServices.factory('Groups', ['$resource',
 infoSysServices.factory('Rules', ['$resource',
     function($resource) {
         return {
-            List: $resource('/rules', {}, { go: { method:'POST', isArray: false }})
-            //Get: $resource('/account', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            List: $resource('/rules/list', {}, { go: { method:'POST', isArray: false }}),
+            Get: $resource('/rules/get', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
+            Update: $resource('/rules/update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', data: '@settings'} }}),
+            Delete: $resource('/rules/delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 

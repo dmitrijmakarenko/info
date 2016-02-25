@@ -33,6 +33,10 @@ infoSys.config(['$routeProvider',
                 templateUrl: 'public/templates/rules.html',
                 controller: 'rulesCntl'
             }).
+            when('/rules/:rule', {
+                templateUrl: 'public/templates/rule.html',
+                controller: 'ruleCntl'
+            }).
             when('/tables', {
                 templateUrl: 'public/templates/tables.html',
                 controller: 'tablesCntl'

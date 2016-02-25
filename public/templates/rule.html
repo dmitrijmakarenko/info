@@ -1,0 +1,12 @@
+<div id="rules-edit">
+    <div class="tbl">
+        <div class="row">
+            <div class="desc">Описание</div><div class="cont"><input type="text" ng-model="desc"></div>
+        </div>
+
+        <div class="btn-bar">
+            <div button func="saveSettings" text="Сохранить" loading="true"></div>
+            <div button ng-show="createMode" func="deleteRule" text="Удалить" clazz="remove"></div>
+        </div>
+    </div>
+</div>

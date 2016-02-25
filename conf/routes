@@ -10,11 +10,11 @@ POST    /get_entity                             App.GetEntity
 POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
-POST    /rules                                  App.GetRules
 POST    /testdata                               App.TestSelect
 
 POST    /users/:action                          UsersCntl.:action
 POST    /groups/:action                         GroupCntl.:action
+POST    /rules/:action                          RuleCntl.:action
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
