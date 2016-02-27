@@ -9,15 +9,15 @@
         <div class="settings-wrap">
             <div>Объект</div>
             <div class="select">
-                <div class="item" ng-click="selectObject(true)">Пользователи</div>
-                <div class="item" ng-click="selectObject(false)">Группы</div>
+                <div class="item" ng-click="selectObject(true)" ng-class="{true: 'selected', false: 'not-selected'}[selectUsers]">Пользователи</div>
+                <div class="item" ng-click="selectObject(false)" ng-class="{true: 'selected', false: 'not-selected'}[!selectUsers]">Группы</div>
             </div>
             <div>
                 <div ng-show="selectUsers"><dropdown placeholder="Выберите" list="users" property="id" selected="userSelected"></dropdown></div>
                 <div ng-show="!selectUsers"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
             </div>
             <div>Операции</div>
-            <div></div>
+            <div><dropdown placeholder="Выберите" list="operations" property="text" selected="opSelected"></dropdown></div>
         </div>
         <div class="add-opt link" ng-click="addOption()">Добавить</div>
         <div class="option" ng-repeat="option in options">

@@ -1,3 +1,5 @@
+@import "custom";
+
 #accounts-list,
 #groups-list {
   padding: 15px 0 0 15px;
@@ -63,6 +65,14 @@
 
         .item {
           cursor: pointer;
+
+          &.selected {
+            cursor: default;
+            color: @basic-custom-color;
+          }
+          &.not-selected {
+
+          }
         }
       }
     }

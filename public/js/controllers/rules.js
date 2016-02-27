@@ -20,6 +20,12 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     $scope.createMode = (rule != "!new");
     $scope.selectUsers = true;
 
+    $scope.operations = [
+        {action: "select", text: "Просмотр"},
+        {action: "insert", text: "Добавление"},
+        {action: "update", text: "Изменение"}
+    ];
+
     if (rule != "!new") {
         Rules.Get.go({id: rule}, function(data) {
             if (data.error) {
