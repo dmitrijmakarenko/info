@@ -16,8 +16,14 @@ type RuleItem struct {
 }
 
 type RulesList struct {
-	Error  string `json:"error"`
 	Rules []RuleItem `json:"rules"`
+	Error string `json:"error"`
+}
+
+type RuleData struct {
+	Users []UserItem `json:"users"`
+	Groups []GroupItem `json:"groups"`
+	Error string `json:"error"`
 }
 
 type RuleSettings struct {
@@ -66,6 +72,23 @@ func (c RuleCntl) Get(id string) revel.Result {
 				ret.Desc = desc
 			}
 		}
+	}
+	return c.RenderJson(ret)
+}
+
+func (c RuleCntl) Data() revel.Result {
+	var ret RuleData
+	users, err := usersList()
+	if err != nil {
+		ret.Error = err.Error()
+	} else {
+		ret.Users = users
+	}
+	groups, err := groupsList()
+	if err != nil {
+		ret.Error = err.Error()
+	} else {
+		ret.Groups = groups
 	}
 	return c.RenderJson(ret)
 }

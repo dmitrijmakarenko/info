@@ -282,6 +282,28 @@ func usersList() (users []UserItem, err error) {
 	return users, err
 }
 
+func groupsList() (groups []GroupItem, err error) {
+	rows, err := DB.Query("SELECT id,name FROM sys_groups")
+	if err != nil {
+		revel.ERROR.Println("[get groups]", err)
+	} else {
+		for rows.Next() {
+			var id string
+			var name string
+			err := rows.Scan(&id, &name)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				group := GroupItem{}
+				group.Id = id
+				group.Name = name
+				groups = append(groups, group)
+			}
+		}
+	}
+	return groups, err
+}
+
 func (c App) TestSelect() revel.Result {
 	user := "user1"
 	action := "select"
