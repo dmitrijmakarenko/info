@@ -16,6 +16,7 @@ infoSys.controller('rulesCntl', function ($scope, Rules) {
 
 infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     var rule = $routeParams.rule;
+    $scope.options = [];
 
     $scope.createMode = (rule != "!new");
     $scope.selectUsers = true;
@@ -37,26 +38,33 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     }
 
     Rules.Data.go(function(data) {
-        console.log(data);
         if (data.error) {
-            $scope.showErrorMsg(data.error)
+            $scope.showErrorMsg(data.error);
         } else {
             $scope.users = data.users||[];
             $scope.groups = data.groups||[];
         }
     });
 
-    $scope.options = [];
-    $scope.options.push({t: "user1"});
-    $scope.options.push({t: "grp1"});
-    $scope.options.push({t: "user2"});
-
     $scope.selectObject = function(select) {
         $scope.selectUsers = select;
     };
 
     $scope.addOption = function() {
-        $scope.options.push({t: "user2"});
+        var item = {};
+        if ($scope.selectUsers) {
+            item.object = $scope.userSelected.id||null;
+            item.isUser = true;
+        } else {
+            item.object = $scope.groupSelected.id||null;
+            item.isUser = false;
+        }
+        if ($scope.actionSelected) {
+            item.action = $scope.actionSelected.action;
+        }
+        if (item.object && item.action) {
+            $scope.options.push(item);
+        }
     };
 
     $scope.removeOption = function(idx) {
@@ -67,6 +75,7 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     $scope.saveSettings = function() {
         var compileSettings = {};
         compileSettings.desc = $scope.desc;
+        compileSettings.options = $scope.options;
         Rules.Update.go({id: rule, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {
                 $scope.showErrorMsg(data.error);

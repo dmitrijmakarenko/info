@@ -7,21 +7,22 @@
     </div>
     <div class="options-wrap">
         <div class="settings-wrap">
-            <div>Объект</div>
+            <div class="opt-desc">Объект</div>
             <div class="select">
                 <div class="item" ng-click="selectObject(true)" ng-class="{true: 'selected', false: 'not-selected'}[selectUsers]">Пользователи</div>
                 <div class="item" ng-click="selectObject(false)" ng-class="{true: 'selected', false: 'not-selected'}[!selectUsers]">Группы</div>
             </div>
             <div>
-                <div ng-show="selectUsers"><dropdown placeholder="Выберите" list="users" property="id" selected="userSelected"></dropdown></div>
-                <div ng-show="!selectUsers"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
+                <div class="dropdown-wrap" ng-show="selectUsers"><dropdown placeholder="Выберите" list="users" property="id" selected="userSelected"></dropdown></div>
+                <div class="dropdown-wrap" ng-show="!selectUsers"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
             </div>
-            <div>Операции</div>
-            <div><dropdown placeholder="Выберите" list="operations" property="text" selected="opSelected"></dropdown></div>
+            <div class="opt-desc">Операции</div>
+            <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="operations" property="text" selected="actionSelected"></dropdown></div>
         </div>
         <div class="add-opt link" ng-click="addOption()">Добавить</div>
         <div class="option" ng-repeat="option in options">
-            <div>Opt</div>
+            <div>{{option.object}}</div>
+            <div>{{option.action}}</div>
             <div class="link" ng-click="removeOption($index)">Удалить</div>
         </div>
     </div>
