@@ -38,7 +38,7 @@ infoSysDirectives.directive('leftpanel', function () {
                 {text : "Группы", path: "groups"},
                 {text : "Правила", path: "rules"},
                 {text : "База данных", path: "db"},
-                {text : "Тест", path: "test"}
+                {text : "База данных", path: "e"}
             ];
             $scope.go = function(val) {
                 window.location = "#/" + val.path;
@@ -189,7 +189,6 @@ infoSysDirectives.directive('propcontrol', function () {
 infoSysDirectives.directive("dropdown", function($rootScope) {
     return {
         restrict: "E",
-        templateUrl: "dropdown-control",
         scope: {
             placeholder: "@",
             list: "=",
@@ -232,6 +231,22 @@ infoSysDirectives.directive("dropdown", function($rootScope) {
                     $scope.display = $scope.selected[$scope.property];
                 }
             });
-        }
+        },
+        template:
+        '<div class="dropdown-container" ng-class="{ show: listVisible }">' +
+            '<div class="dropdown-display" ng-click="show();" ng-class="{ clicked: listVisible }">' +
+                '<span ng-if="!isPlaceholder">{{display}}</span>' +
+                '<span class="placeholder" ng-if="isPlaceholder">{{placeholder}}</span>' +
+                '<i class="fa fa-angle-down"></i>' +
+            '</div>' +
+            '<div class="dropdown-list">' +
+                '<div>' +
+                    '<div ng-repeat="item in list" ng-click="select(item)" ng-class="{ selected: isSelected(item) }">' +
+                        '<span>{{property !== undefined ? item[property] : item}}</span>' +
+                        '<i class="fa fa-check"></i>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
     }
 });

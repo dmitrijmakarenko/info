@@ -7,24 +7,7 @@
             <div class="desc">Name</div><div class="cont"><input type="text" ng-model="name"></div>
         </div>
         <propcontrol></propcontrol>
-
-        <div class="btn-bar">
-            <div button func="saveSettings" text="Сохранить" loading="true"></div>
-            <div button ng-show="createMode" func="entityRemove" text="Удалить" clazz="remove"></div>
-        </div>
     </div>
-    <!--<div class="right-side" ng-show="createMode">-->
-        <!--<div class="title">Конструктор запросов</div>-->
-        <!--<div class="actions">-->
-            <!--<div ng-repeat="action in sqlActions" class="item">-->
-                <!--<div ng-click="toggle($index)" class="action-name" ng-class="{toggled: action.show}">{{action.text}}</div>-->
-                <!--<div ng-show="action.show" class="action-panel">-->
-                    <!--<div ng-click="getQuery($index, action.action)" class="link">Получить</div>-->
-                    <!--<textarea ng-model="action.query" name="text"></textarea>-->
-                <!--</div>-->
-            <!--</div>-->
-        <!--</div>-->
-    <!--</div>-->
     <div class="loading" ng-show="loading">
         <div class="shade"></div>
         <img src="/public/img/loading.gif" alt="Загрузка..." class="spinner"/>
@@ -72,24 +55,6 @@
         <div class="btn-bar">
             <div button func="confirm" text="Удалить"></div>
             <div class="link" ng-click="closeThisDialog()">Отмена</div>
-        </div>
-    </div>
-</script>
-
-<script type="text/ng-template" id="dropdown-control">
-    <div class="dropdown-container" ng-class="{ show: listVisible }">
-        <div class="dropdown-display" ng-click="show();" ng-class="{ clicked: listVisible }">
-            <span ng-if="!isPlaceholder">{{display}}</span>
-            <span class="placeholder" ng-if="isPlaceholder">{{placeholder}}</span>
-            <i class="fa fa-angle-down"></i>
-        </div>
-        <div class="dropdown-list">
-            <div>
-                <div ng-repeat="item in list" ng-click="select(item)" ng-class="{ selected: isSelected(item) }">
-                    <span>{{property !== undefined ? item[property] : item}}</span>
-                    <i class="fa fa-check"></i>
-                </div>
-            </div>
         </div>
     </div>
 </script>
