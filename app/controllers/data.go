@@ -26,6 +26,7 @@ type DataParams struct {
 func (c DataCntl) Get(params string) revel.Result {
 	var ret DataRecords
 	var p DataParams
+	var hasRights bool
 
 	err := json.Unmarshal([]byte(params), &p)
 	if err != nil {
@@ -43,7 +44,7 @@ func (c DataCntl) Get(params string) revel.Result {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
 	}
-	var rules []string
+	var rules []interface{}
 	for rows.Next() {
 		var rule string
 		err := rows.Scan(&rule)
@@ -53,6 +54,11 @@ func (c DataCntl) Get(params string) revel.Result {
 		} else {
 			rules = append(rules, rule)
 		}
+	}
+	if len(rules) > 0 {
+		hasRights = true
+	} else {
+		hasRights = false
 	}
 	revel.INFO.Println("[get data] rules", rules)
 	var rulesList string
@@ -67,13 +73,22 @@ func (c DataCntl) Get(params string) revel.Result {
 	revel.INFO.Println("[get data] rulesList", rulesList)
 
 	//sql query
-	stmt, err := DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IN ($1, $2)")
+	var stmt *sql.Stmt
+	if (hasRights) {
+		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
+	} else {
+		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
+	}
 	if err != nil {
 		revel.ERROR.Println("[get data] stmt", err)
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
 	}
-	rows, err = stmt.Query(rules)
+	if (hasRights) {
+		rows, err = stmt.Query(rules...)
+	} else {
+		rows, err = stmt.Query()
+	}
 	if err != nil {
 		revel.ERROR.Println("[get data] stmt rows", err)
 		ret.Error = err.Error()
@@ -85,19 +100,10 @@ func (c DataCntl) Get(params string) revel.Result {
 	stmt, _ := DB.Prepare(query)
 	revel.INFO.Println("[get data] stmt", stmt)
 	rows, _ = stmt.Query(rules...)*/
-	//ret.Id = p.Table
-	//stmt, err := DB.Prepare("SELECT * FROM " + p.Table + "WHERE rule IN " + rulesList)
-	//args := []int{1, 2, 3}
-	//revel.INFO.Println("[get data] query", stmt)
-	//rows, _ = stmt.Query([]string{"1", "2", "3"})
-	rows, err = DB.Query("SELECT * FROM " + p.Table)
 
-	if err != nil {
-		ret.Error = err.Error()
-		return c.RenderJson(ret)
-	}
 	columnNames, err := rows.Columns()
-	ret.Columns = listColumns(p.Table)
+	ret.Columns = columnNames
+	//ret.Columns = listColumns(p.Table)
 	var retRows [][]string
 	for rows.Next() {
 		var retRow []string
