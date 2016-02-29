@@ -20,6 +20,12 @@ type RulesList struct {
 	Error string `json:"error"`
 }
 
+type RuleAction struct {
+	Object string `json:"object"`
+	Operation string `json:"operation"`
+	IsUser bool `json:"isUser"`
+}
+
 type RuleData struct {
 	Users []UserItem `json:"users"`
 	Groups []GroupItem `json:"groups"`
@@ -27,9 +33,10 @@ type RuleData struct {
 }
 
 type RuleSettings struct {
-	Error  string `json:"error"`
 	Id string `json:"id"`
 	Desc string `json:"desc"`
+	Actions []RuleAction `json:"actions"`
+	Error  string `json:"error"`
 }
 
 func (c RuleCntl) List() revel.Result {
@@ -97,24 +104,39 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 	ret := make(map[string]string)
 	var settings RuleSettings
 	err := json.Unmarshal([]byte(data), &settings)
-	if id == "!new" {
-		uuid, _ := uuid.NewV4()
-		settings.Id = uuid.String()
-	} else {
-		settings.Id = id
-	}
 	if err != nil {
 		ret["error"] = "settings error format";
 	} else {
-
 		if id == "!new" {
+			uuid, _ := uuid.NewV4()
+			settings.Id = uuid.String()
 			_, err = DB.Exec("INSERT INTO rules(rule, rule_desc) VALUES ($1, $2)", settings.Id, settings.Desc)
 		} else {
+			settings.Id = id
 			_, err = DB.Exec("UPDATE rules SET rule_desc=$2 WHERE rule=$1", settings.Id, settings.Desc)
+			_, err = DB.Exec("DELETE FROM rules_p WHERE rule=$1", settings.Id)
 		}
 		if err != nil {
 			ret["error"] = err.Error();
+		} else {
+			for _, action := range settings.Actions {
+				if action.IsUser {
+					_, err = DB.Exec("INSERT INTO rules_p(rule, rule_role, action) VALUES ($1, $2, $3)", settings.Id, action.Object, action.Operation)
+				} else {
+					users, err := getUsersByGroup(action.Object)
+					for _, user := range users {
+						_, err = DB.Exec("INSERT INTO rules_p(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", settings.Id, user, action.Operation, action.Object)
+					}
+					if err != nil {
+						ret["error"] = err.Error();
+					}
+				}
+			}
 		}
+	}
+
+	if err != nil {
+		ret["error"] = err.Error();
 	}
 	return c.RenderJson(ret)
 }

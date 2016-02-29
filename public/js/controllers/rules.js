@@ -16,15 +16,15 @@ infoSys.controller('rulesCntl', function ($scope, Rules) {
 
 infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     var rule = $routeParams.rule;
-    $scope.options = [];
+    $scope.actions = [];
 
     $scope.createMode = (rule != "!new");
     $scope.selectUsers = true;
 
     $scope.operations = [
-        {action: "select", text: "Просмотр"},
-        {action: "insert", text: "Добавление"},
-        {action: "update", text: "Изменение"}
+        {operation: "select", text: "Просмотр"},
+        {operation: "insert", text: "Добавление"},
+        {operation: "update", text: "Изменение"}
     ];
 
     if (rule != "!new") {
@@ -59,23 +59,24 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
             item.object = $scope.groupSelected.id||null;
             item.isUser = false;
         }
-        if ($scope.actionSelected) {
-            item.action = $scope.actionSelected.action;
+        if ($scope.operationSelected) {
+            item.operation = $scope.operationSelected.operation;
         }
-        if (item.object && item.action) {
-            $scope.options.push(item);
+        console.log(item);
+        if (item.object && item.operation) {
+            $scope.actions.push(item);
         }
     };
 
     $scope.removeOption = function(idx) {
-        $scope.options.splice(idx, 1);
+        $scope.actions.splice(idx, 1);
     };
 
 
     $scope.saveSettings = function() {
         var compileSettings = {};
         compileSettings.desc = $scope.desc;
-        compileSettings.options = $scope.options;
+        compileSettings.actions = $scope.actions;
         Rules.Update.go({id: rule, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {
                 $scope.showErrorMsg(data.error);

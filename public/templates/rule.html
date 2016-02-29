@@ -17,12 +17,12 @@
                 <div class="dropdown-wrap" ng-show="!selectUsers"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
             </div>
             <div class="opt-desc">Операции</div>
-            <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="operations" property="text" selected="actionSelected"></dropdown></div>
+            <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="operations" property="text" selected="operationSelected"></dropdown></div>
         </div>
         <div class="add-opt link" ng-click="addOption()">Добавить</div>
-        <div class="option" ng-repeat="option in options">
-            <div>{{option.object}}</div>
-            <div>{{option.action}}</div>
+        <div class="option" ng-repeat="action in actions">
+            <div>{{action.object}}</div>
+            <div>{{action.operation}}</div>
             <div class="link" ng-click="removeOption($index)">Удалить</div>
         </div>
     </div>

@@ -2,10 +2,7 @@ package controllers
 
 import (
 	"github.com/robfig/revel"
-	_ "strconv"
-	_ "encoding/json"
 	"encoding/json"
-	"strconv"
 )
 
 type App struct {
@@ -185,36 +182,6 @@ func (c App) GenerateDB() revel.Result {
 	return c.RenderJson(ret)
 }
 
-func (c App) ValidateDB() revel.Result {
-	revel.INFO.Println("validate db")
-	cntCfgTables := 0
-	cntConfirmTables := 0
-	cntExcessTables := 0
-	ret := make(map[string]string)
-	tablesDB := listTables()
-	revel.INFO.Println("tablesDB", tablesDB)
-	cfg := readXML()
-	for _, table := range tablesDB {
-		usage := false
-		for _, ent := range cfg.Entities {
-			//listColumns(ent)
-			if (table == ent.Id) {
-				cntConfirmTables++
-				usage = true
-				break
-			}
-		}
-		if (!usage) {
-			cntExcessTables++
-		}
-	}
-	cntCfgTables = len(cfg.Entities)
-	ret["totalCfgTables"] = strconv.Itoa(cntCfgTables)
-	ret["cntConfirmTables"] = strconv.Itoa(cntConfirmTables)
-	ret["cntExcessTables"] = strconv.Itoa(cntExcessTables)
-	return c.RenderJson(ret)
-}
-
 func (c App) ClearDB() revel.Result {
 	revel.INFO.Println("clear db")
 	ret := make(map[string]string)
@@ -276,6 +243,24 @@ func usersList() (users []UserItem, err error) {
 				user.Id = id
 				user.Name = name
 				users = append(users, user)
+			}
+		}
+	}
+	return users, err
+}
+
+func getUsersByGroup(group string) (users []string, err error) {
+	rows, err := DB.Query("SELECT user_id FROM sys_group_user WHERE group_id=$1", group)
+	if err != nil {
+		revel.ERROR.Println("[getUsersByGroup]", err)
+	} else {
+		for rows.Next() {
+			var id string
+			err := rows.Scan(&id)
+			if err != nil {
+				revel.ERROR.Println(err)
+			} else {
+				users = append(users, id)
 			}
 		}
 	}
