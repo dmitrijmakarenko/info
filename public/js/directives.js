@@ -36,9 +36,9 @@ infoSysDirectives.directive('leftpanel', function () {
                 {text : "Таблицы", path: "tables"},
                 {text : "Пользователи", path: "accounts"},
                 {text : "Группы", path: "groups"},
-                {text : "Правила", path: "rules"},
+                {text : "Права", path: "rules"},
                 {text : "База данных", path: "db"},
-                {text : "База данных", path: "e"}
+                {text : "Тест", path: "test"}
             ];
             $scope.go = function(val) {
                 window.location = "#/" + val.path;

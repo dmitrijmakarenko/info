@@ -4,6 +4,7 @@ import (
 	"github.com/robfig/revel"
 	"database/sql"
 	"encoding/json"
+	"strconv"
 )
 
 type DataCntl struct {
@@ -37,10 +38,47 @@ func (c DataCntl) Get(params string) revel.Result {
 	//check user
 
 	//get rights
+	rows, err := DB.Query("SELECT DISTINCT rule FROM rules_p WHERE rule_role=$1", p.User)
+	if err != nil {
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	var rules []string
+	for rows.Next() {
+		var rule string
+		err := rows.Scan(&rule)
+		if err != nil {
+			ret.Error = err.Error()
+			return c.RenderJson(ret)
+		} else {
+			rules = append(rules, rule)
+		}
+	}
+	revel.INFO.Println("[get data] rules", rules)
+	var rulesList string
+	rulesList += "("
+	for i, _ := range rules {
+		rulesList += "$" + strconv.Itoa(i+1)
+		if (i != len(rules) - 1) {
+			rulesList += ", "
+		}
+	}
+	rulesList += ")"
+	revel.INFO.Println("[get data] rulesList", rulesList)
 
 	//sql query
-	ret.Id = p.Table
-	rows, err := DB.Query("SELECT * FROM " + p.Table)
+
+	/*query := fmt.Sprintf("SELECT * FROM t WHERE id Iargs := []int{1, 2, 3} qN (%s)", strings.Join(strings.Split(strings.Repeat("?", len(rules)), ""), ","))
+	stmt, _ := DB.Prepare(query)
+	revel.INFO.Println("[get data] stmt", stmt)
+	rows, _ = stmt.Query(rules...)*/
+	//ret.Id = p.Table
+	//stmt, err := DB.Prepare("SELECT * FROM " + p.Table + "WHERE rule IN " + rulesList)
+	//args := []int{1, 2, 3}
+	//revel.INFO.Println("[get data] query", stmt)
+	//rows, _ = stmt.Query([]string{"1", "2", "3"})
+	rows, err = DB.Query("SELECT * FROM " + p.Table)
+
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
