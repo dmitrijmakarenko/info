@@ -16,6 +16,8 @@ POST    /users/:action                          UsersCntl.:action
 POST    /groups/:action                         GroupCntl.:action
 POST    /rules/:action                          RuleCntl.:action
 
+POST    /data/:action                           DataCntl.:action
+
 # Ignore favicon requests
 GET     /favicon.ico                            404
 

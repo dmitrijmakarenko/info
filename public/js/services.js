@@ -77,3 +77,10 @@ infoSysServices.factory('TestFunc', ['$resource',
             Select: $resource('/testdata', {}, { go: { method:'POST', isArray: false }})
         };
     }]);
+
+infoSysServices.factory('Data', ['$resource',
+    function($resource) {
+        return {
+            Get: $resource('/data/get', {}, { go: { method:'POST', isArray: false, params : {params: '@params'} }})
+        };
+    }]);

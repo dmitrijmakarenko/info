@@ -1,0 +1,29 @@
+<div id="test-page">
+    <div class="tbl">
+        <div class="row">
+            <div class="desc">Пользователь</div><div class="cont"><input type="text" ng-model="user"></div>
+        </div>
+        <div class="row">
+            <div class="desc">Таблица</div><div class="cont"><input type="text" ng-model="table"></div>
+        </div>
+    </div>
+    <div button func="goTest" text="Тест"></div>
+    <div>
+        <div class="object-item">
+            <div class="content-wrap">
+                <div class="object-name">{{entity.name}}</div>
+                <div class="object-id">{{entity.id}}</div>
+                <div class="table-wrap">
+                    <table>
+                        <tr>
+                            <th ng-repeat="column in entity.columns">{{column}}</th>
+                        </tr>
+                        <tr ng-repeat="row in entity.rows">
+                            <td ng-repeat="dataRow in row">{{dataRow}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
