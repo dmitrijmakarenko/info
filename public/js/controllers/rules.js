@@ -29,10 +29,12 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
 
     if (rule != "!new") {
         Rules.Get.go({id: rule}, function(data) {
+            console.log(data);
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
                 $scope.desc = data.desc;
+                $scope.actions = data.actions||[];
             }
         });
     }
