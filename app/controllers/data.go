@@ -67,6 +67,19 @@ func (c DataCntl) Get(params string) revel.Result {
 	revel.INFO.Println("[get data] rulesList", rulesList)
 
 	//sql query
+	stmt, err := DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IN ($1, $2)")
+	if err != nil {
+		revel.ERROR.Println("[get data] stmt", err)
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	rows, err = stmt.Query(rules)
+	if err != nil {
+		revel.ERROR.Println("[get data] stmt rows", err)
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	revel.INFO.Println("[get data] stmt", stmt)
 
 	/*query := fmt.Sprintf("SELECT * FROM t WHERE id Iargs := []int{1, 2, 3} qN (%s)", strings.Join(strings.Split(strings.Repeat("?", len(rules)), ""), ","))
 	stmt, _ := DB.Prepare(query)
