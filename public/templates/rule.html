@@ -21,7 +21,7 @@
         </div>
         <div class="add-opt link" ng-click="addOption()">Добавить</div>
         <div class="option" ng-repeat="action in actions">
-            <div>{{action.object}}</div>
+            <div>{{getName(action.isUser ,action.object)}}</div>
             <div>{{action.operation}}</div>
             <div class="link" ng-click="removeOption($index)">Удалить</div>
         </div>

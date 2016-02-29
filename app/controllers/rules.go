@@ -82,7 +82,7 @@ func (c RuleCntl) Get(id string) revel.Result {
 	}
 
 	//get groups
-	rows, err = DB.Query("SELECT COALESCE(rule_group, '') as rule_group,action FROM rules_p WHERE rule=$1 AND rule_group IS NOT NULL", id)
+	rows, err = DB.Query("SELECT DISTINCT COALESCE(rule_group, '') as rule_group,action FROM rules_p WHERE rule=$1 AND rule_group IS NOT NULL", id)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)

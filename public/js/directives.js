@@ -207,7 +207,11 @@ infoSysDirectives.directive("dropdown", function($rootScope) {
             };
 
             $scope.isSelected = function(item) {
-                return item[$scope.property] === $scope.selected[$scope.property];
+                if ($scope.selected) {
+                    return item[$scope.property] === $scope.selected[$scope.property];
+                } else {
+                    return false
+                }
             };
 
             $scope.show = function() {
@@ -222,8 +226,10 @@ infoSysDirectives.directive("dropdown", function($rootScope) {
             });
 
             $scope.$watch("selected", function() {
-                $scope.isPlaceholder = $scope.selected[$scope.property] === undefined;
-                $scope.display = $scope.selected[$scope.property];
+                if ($scope.selected) {
+                    $scope.isPlaceholder = $scope.selected[$scope.property] === undefined;
+                    $scope.display = $scope.selected[$scope.property];
+                }
             });
         }
     }

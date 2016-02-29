@@ -15,9 +15,11 @@ infoSys.controller('rulesCntl', function ($scope, Rules) {
 });
 
 infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
-    var rule = $routeParams.rule;
-    $scope.actions = [];
+    var rule = $routeParams.rule,
+        userNameById = {},
+        groupNameById = {};
 
+    $scope.actions = [];
     $scope.createMode = (rule != "!new");
     $scope.selectUsers = true;
 
@@ -26,6 +28,21 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
         {operation: "insert", text: "Добавление"},
         {operation: "update", text: "Изменение"}
     ];
+
+    Rules.Data.go(function(data) {
+        if (data.error) {
+            $scope.showErrorMsg(data.error);
+        } else {
+            $scope.users = data.users||[];
+            $scope.groups = data.groups||[];
+            for (var i = 0; i < $scope.users.length; i++) {
+                if ($scope.users[i].id) userNameById[$scope.users[i].id] = $scope.users[i].name||$scope.users[i].id;
+            }
+            for (var i = 0; i < $scope.groups.length; i++) {
+                if ($scope.groups[i].id) groupNameById[$scope.groups[i].id] = $scope.groups[i].name||$scope.groups[i].id;
+            }
+        }
+    });
 
     if (rule != "!new") {
         Rules.Get.go({id: rule}, function(data) {
@@ -39,14 +56,13 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
         });
     }
 
-    Rules.Data.go(function(data) {
-        if (data.error) {
-            $scope.showErrorMsg(data.error);
+    $scope.getName = function(isUser, id) {
+        if (isUser) {
+            return userNameById[id]||"";
         } else {
-            $scope.users = data.users||[];
-            $scope.groups = data.groups||[];
+            return groupNameById[id]||"";
         }
-    });
+    };
 
     $scope.selectObject = function(select) {
         $scope.selectUsers = select;
@@ -64,7 +80,6 @@ infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
         if ($scope.operationSelected) {
             item.operation = $scope.operationSelected.operation;
         }
-        console.log(item);
         if (item.object && item.operation) {
             $scope.actions.push(item);
         }
