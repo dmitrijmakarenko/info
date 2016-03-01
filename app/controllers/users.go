@@ -27,7 +27,7 @@ type UserSettings struct {
 
 func (c UsersCntl) List() revel.Result {
 	var ret UsersList
-	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM sys_users")
+	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM " + TABLE_USERS)
 	if err != nil {
 		revel.ERROR.Println("[get accounts]", err)
 		ret.Error = err.Error()
@@ -51,7 +51,7 @@ func (c UsersCntl) List() revel.Result {
 
 func (c UsersCntl) Get(id string) revel.Result {
 	var ret UserSettings
-	rows, err := DB.Query("SELECT name,position FROM sys_users WHERE id=$1", id)
+	rows, err := DB.Query("SELECT name,position FROM "+TABLE_USERS+" WHERE id=$1", id)
 	if err != nil {
 		revel.ERROR.Println("[get user]", err)
 		ret := make(map[string]string)
@@ -83,9 +83,9 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 		ret["error"] = "settings error format";
 	} else {
 		if id == "!new" {
-			_, err = DB.Exec("INSERT INTO sys_users(id, name, position) VALUES ($1, $2, $3)", settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(id, name, position) VALUES ($1, $2, $3)", settings.Id, settings.Name, settings.Position)
 		} else {
-			_, err = DB.Exec("UPDATE sys_users SET id=$2, name=$3, position=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, name=$3, position=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
 		}
 		if err != nil {
 			ret["error"] = err.Error();
@@ -96,7 +96,7 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 
 func (c UsersCntl) Delete(id string) revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Exec("DELETE FROM sys_users WHERE id=$1", id)
+	_, err := DB.Exec("DELETE FROM "+TABLE_USERS+" WHERE id=$1", id)
 	if err != nil {
 		revel.ERROR.Println("[delete user]", err)
 		ret["error"] = err.Error()

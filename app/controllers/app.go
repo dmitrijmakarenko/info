@@ -35,19 +35,11 @@ func (c App) Index() revel.Result {
 	return c.Render()
 }
 
-//func (c App) GetEntities() revel.Result {
-//	revel.INFO.Println("get configs")
-//	var out []map[string]string
-//	cfg := readXML()
-//	for _, ent := range cfg.Entities {
-//		var entity = make(map[string]string)
-//		entity["id"] = ent.Id
-//		entity["name"] = ent.Name
-//		entity["cntProps"] = strconv.Itoa(len(ent.Properties))
-//		out = append(out, entity)
-//	}
-//	return c.RenderJson(out)
-//}
+var TABLE_USERS string
+var TABLE_GROUPS string
+var TABLE_GROUP_USER string
+var TABLE_RULES string
+var TABLE_RULES_P string
 
 //func (c App) GetEntity(id string, returnData bool) revel.Result {
 //	cfg := readXML()
@@ -228,7 +220,7 @@ func (c App) GetViews() revel.Result {
 }
 
 func usersList() (users []UserItem, err error) {
-	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM sys_users")
+	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM " + TABLE_USERS)
 	if err != nil {
 		revel.ERROR.Println("[get accounts]", err)
 	} else {
@@ -250,7 +242,7 @@ func usersList() (users []UserItem, err error) {
 }
 
 func getUsersByGroup(group string) (users []string, err error) {
-	rows, err := DB.Query("SELECT user_id FROM sys_group_user WHERE group_id=$1", group)
+	rows, err := DB.Query("SELECT user_id FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", group)
 	if err != nil {
 		revel.ERROR.Println("[getUsersByGroup]", err)
 	} else {
@@ -268,7 +260,7 @@ func getUsersByGroup(group string) (users []string, err error) {
 }
 
 func groupsList() (groups []GroupItem, err error) {
-	rows, err := DB.Query("SELECT id,name FROM sys_groups")
+	rows, err := DB.Query("SELECT id,name FROM "+TABLE_GROUPS)
 	if err != nil {
 		revel.ERROR.Println("[get groups]", err)
 	} else {

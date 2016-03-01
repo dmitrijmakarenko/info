@@ -24,6 +24,9 @@ func InitDB() {
 	if err != nil {
 		revel.ERROR.Println("DB Error", err)
 	}
+	TABLE_USERS = "sys_users"
+	TABLE_GROUPS = "sys_groups"
+	TABLE_GROUP_USER = "sys_group_user"
 	revel.INFO.Println("DB Connected")
 }
 

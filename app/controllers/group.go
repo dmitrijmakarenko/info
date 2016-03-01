@@ -33,13 +33,13 @@ type GroupSettings struct {
 }
 
 func CreateGroupTable() (err error) {
-	_, err = DB.Exec("CREATE TABLE sys_groups ( id uuid NOT NULL, name name ) WITH (OIDS=FALSE); ALTER TABLE sys_groups OWNER TO postgres;")
+	_, err = DB.Exec("CREATE TABLE "+TABLE_GROUPS+" ( id uuid NOT NULL, name name ) WITH (OIDS=FALSE); ALTER TABLE sys_groups OWNER TO postgres;")
 	return err
 }
 
 func (c GroupCntl) List() revel.Result {
 	var ret GroupsList
-	rows, err := DB.Query("SELECT id, name FROM sys_groups")
+	rows, err := DB.Query("SELECT id, name FROM "+TABLE_GROUPS)
 	if err != nil {
 		if strings.Contains(err.Error(), "does not exist") {
 			err = CreateGroupTable();
@@ -84,11 +84,11 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 
 	if id == "!new" {
-		_, err = DB.Exec("INSERT INTO sys_groups(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
+		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS+"(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
 	} else {
-		_, err = DB.Exec("UPDATE sys_groups SET name=$2 WHERE id=$1", settings.Id, settings.Name)
+		_, err = DB.Exec("UPDATE "+TABLE_GROUPS+" SET name=$2 WHERE id=$1", settings.Id, settings.Name)
 	}
-	_, err = DB.Exec("DELETE FROM sys_group_user WHERE group_id=$1", settings.Id)
+	_, err = DB.Exec("DELETE FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", settings.Id)
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -121,7 +121,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 
 	for _, member := range settings.Members {
-		_, err = DB.Exec("INSERT INTO sys_group_user(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
+		_, err = DB.Exec("INSERT INTO "+TABLE_GROUP_USER+"(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
 		for _, rule := range groupRules {
 			revel.INFO.Println("[add member]", member.Id)
 			_, err = DB.Exec("INSERT INTO rules_p(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
@@ -137,8 +137,8 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 func (c GroupCntl) Get(id string) revel.Result {
 	var ret GroupSettings
 	var usersGroup []string
-	rows, err := DB.Query("SELECT name FROM sys_groups WHERE id=$1", id)
-	rowsUsers, err := DB.Query("SELECT user_id FROM sys_group_user WHERE group_id=$1", id)
+	rows, err := DB.Query("SELECT name FROM "+TABLE_GROUPS+" WHERE id=$1", id)
+	rowsUsers, err := DB.Query("SELECT user_id FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", id)
 	allUsers, err := usersList()
 	if err != nil {
 		revel.ERROR.Println(err)
@@ -201,7 +201,7 @@ func (c GroupCntl) Data() revel.Result {
 
 func (c GroupCntl) Delete(id string) revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Exec("DELETE FROM sys_groups WHERE id=$1", id)
+	_, err := DB.Exec("DELETE FROM "+TABLE_GROUPS+" WHERE id=$1", id)
 	if err != nil {
 		revel.ERROR.Println("[delete group]", err)
 		ret["error"] = err.Error()
