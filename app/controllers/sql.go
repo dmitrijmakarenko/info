@@ -17,11 +17,10 @@ type DataEntity struct {
 }
 
 func InitDB() {
-	connstring := "host=localhost port=5433 user=postgres dbname=infosystem password=12345 sslmode=disable"
-	dbname := "postgres"
+	connstring := "host=" + DB_HOST + " port=" + DB_PORT + " user=" + DB_USER+ " dbname=" + DB_NAME + " password=" + DB_PASSWORD + " sslmode=disable"
 
 	var err error
-	DB, err = sql.Open(dbname, connstring)
+	DB, err = sql.Open(DB_DRIVER, connstring)
 	if err != nil {
 		revel.ERROR.Println("DB Error", err)
 	}
