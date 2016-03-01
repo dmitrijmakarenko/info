@@ -80,21 +80,57 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 	if err != nil {
 		ret["error"] = "settings error format";
+		return c.RenderJson(ret)
+	}
+
+	if id == "!new" {
+		_, err = DB.Exec("INSERT INTO sys_groups(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
 	} else {
-		if id == "!new" {
-			_, err = DB.Exec("INSERT INTO sys_groups(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
-		} else {
-			_, err = DB.Exec("UPDATE sys_groups SET name=$2 WHERE id=$1", settings.Id, settings.Name)
-		}
-		_, err = DB.Exec("DELETE FROM sys_group_user WHERE group_id=$1", settings.Id)
-		for _, member := range settings.Members {
-			_, err = DB.Exec("INSERT INTO sys_group_user(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
-		}
+		_, err = DB.Exec("UPDATE sys_groups SET name=$2 WHERE id=$1", settings.Id, settings.Name)
+	}
+	_, err = DB.Exec("DELETE FROM sys_group_user WHERE group_id=$1", settings.Id)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+
+	var groupRules []RuleGroupItem
+	rows, err := DB.Query("SELECT DISTINCT rule, action FROM rules_p WHERE rule_group=$1", settings.Id)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	for rows.Next() {
+		var ruleId string
+		var action string
+		err := rows.Scan(&ruleId, &action)
 		if err != nil {
-			revel.ERROR.Println("[group update]", err)
 			ret["error"] = err.Error()
+		} else {
+			rule := RuleGroupItem{}
+			rule.Id = ruleId
+			rule.Operation = action
+			groupRules = append(groupRules, rule)
 		}
 	}
+
+	_, err = DB.Exec("DELETE FROM rules_p WHERE rule_group=$1", settings.Id)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+
+	for _, member := range settings.Members {
+		_, err = DB.Exec("INSERT INTO sys_group_user(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
+		for _, rule := range groupRules {
+			revel.INFO.Println("[add member]", member.Id)
+			_, err = DB.Exec("INSERT INTO rules_p(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
+		}
+	}
+	if err != nil {
+		ret["error"] = err.Error()
+	}
+
 	return c.RenderJson(ret)
 }
 

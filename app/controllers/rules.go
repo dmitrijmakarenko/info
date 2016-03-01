@@ -20,6 +20,11 @@ type RulesList struct {
 	Error string `json:"error"`
 }
 
+type RuleGroupItem struct {
+	Id string `json:"id"`
+	Operation string `json:"operation"`
+}
+
 type RuleAction struct {
 	Object string `json:"object"`
 	Operation string `json:"operation"`
