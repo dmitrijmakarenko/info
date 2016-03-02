@@ -121,6 +121,32 @@ CREATE TABLE test (
 ALTER TABLE public.test OWNER TO postgres;
 
 --
+-- Name: test_table_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE test_table_protected (
+    field1 name,
+    field2 name,
+    rule uuid
+);
+
+
+ALTER TABLE public.test_table_protected OWNER TO postgres;
+
+--
+-- Name: test_table; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW test_table AS
+ SELECT test_table_protected.field1,
+    test_table_protected.field2,
+    test_table_protected.rule
+   FROM test_table_protected;
+
+
+ALTER TABLE public.test_table OWNER TO postgres;
+
+--
 -- Name: testtable_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -214,6 +240,14 @@ COPY test (num, rule) FROM stdin;
 
 
 --
+-- Data for Name: test_table_protected; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY test_table_protected (field1, field2, rule) FROM stdin;
+\.
+
+
+--
 -- Data for Name: testtable_protected; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -252,6 +286,24 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM postgres;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- Name: test_table_protected; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE test_table_protected FROM PUBLIC;
+REVOKE ALL ON TABLE test_table_protected FROM postgres;
+
+
+--
+-- Name: test_table; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE test_table FROM PUBLIC;
+REVOKE ALL ON TABLE test_table FROM postgres;
+GRANT ALL ON TABLE test_table TO postgres;
+GRANT ALL ON TABLE test_table TO student1;
 
 
 --
