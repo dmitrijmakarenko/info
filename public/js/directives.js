@@ -1,6 +1,6 @@
-var infoSysDirectives = angular.module('infoSysDirectives', []);
+var accessSettingsDirectives = angular.module('accessSettingsDirectives', []);
 
-infoSysDirectives.directive('informer', function () {
+accessSettingsDirectives.directive('informer', function () {
     return {
         controller: function($scope, informerControl, $timeout) {
             $scope.show = false;
@@ -29,7 +29,7 @@ infoSysDirectives.directive('informer', function () {
     }
 });
 
-infoSysDirectives.directive('leftpanel', function () {
+accessSettingsDirectives.directive('leftpanel', function () {
     return {
         controller: function($scope, $location, $browser) {
             $scope.items = [
@@ -86,7 +86,7 @@ infoSysDirectives.directive('leftpanel', function () {
     }
 });
 
-infoSysDirectives.directive('button', function () {
+accessSettingsDirectives.directive('button', function () {
     return {
         scope: true,
         controller: function($scope) {
@@ -126,7 +126,7 @@ infoSysDirectives.directive('button', function () {
     }
 });
 
-infoSysDirectives.directive('propcontrol', function () {
+accessSettingsDirectives.directive('propcontrol', function () {
     return {
         controller: function($scope, ngDialog) {
             $scope.types = [
@@ -186,7 +186,7 @@ infoSysDirectives.directive('propcontrol', function () {
     }
 });
 
-infoSysDirectives.directive("dropdown", function($rootScope) {
+accessSettingsDirectives.directive("dropdown", function($rootScope) {
     return {
         restrict: "E",
         scope: {

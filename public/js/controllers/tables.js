@@ -1,4 +1,4 @@
-infoSys.controller('tablesCntl', function ($scope, Entity, TestFunc) {
+accessSettings.controller('tablesCntl', function ($scope, Entity) {
     Entity.List.go(function(data) {
         $scope.entities = data;
     });
@@ -7,15 +7,9 @@ infoSys.controller('tablesCntl', function ($scope, Entity, TestFunc) {
         window.location = "#/table/" + entity;
     };
 
-    $scope.test = function() {
-        console.log("test");
-        TestFunc.Select.go(function(data) {
-            console.log(data);
-        });
-    }
 });
 
-infoSys.controller('tableCntl', function ($scope, $routeParams, Entity) {
+accessSettings.controller('tableCntl', function ($scope, $routeParams, Entity) {
     //$scope.loading = true;
     var table = $routeParams.tableId;
 

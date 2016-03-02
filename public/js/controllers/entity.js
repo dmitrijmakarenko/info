@@ -1,4 +1,4 @@
-infoSys.controller('entitiesCntl', function ($scope, Entity) {
+accessSettings.controller('entitiesCntl', function ($scope, Entity) {
 
     Entity.List.go(function(data) {
         $scope.entities = data;
@@ -9,7 +9,7 @@ infoSys.controller('entitiesCntl', function ($scope, Entity) {
     }
 });
 
-infoSys.controller('entityCntl', function ($scope, $routeParams, Entity, ngDialog) {
+accessSettings.controller('entityCntl', function ($scope, $routeParams, Entity, ngDialog) {
     $scope.loading = false;
     var entityId = $routeParams.objectId;
 
@@ -124,7 +124,7 @@ infoSys.controller('entityCntl', function ($scope, $routeParams, Entity, ngDialo
 
 });
 
-infoSys.controller('objectsCntl', function ($scope, Entity) {
+accessSettings.controller('objectsCntl', function ($scope, Entity) {
     Entity.List.go(function(data) {
         $scope.entities = data;
     });
@@ -134,7 +134,7 @@ infoSys.controller('objectsCntl', function ($scope, Entity) {
     }
 });
 
-infoSys.controller('objectCntl', function ($scope, $routeParams, Entity) {
+accessSettings.controller('objectCntl', function ($scope, $routeParams, Entity) {
     $scope.loading = true;
     var entityId = $routeParams.objectId;
 
@@ -147,7 +147,7 @@ infoSys.controller('objectCntl', function ($scope, $routeParams, Entity) {
     });
 });
 
-infoSys.controller('editPropCntl', function ($scope, Entity, ngDialog) {
+accessSettings.controller('editPropCntl', function ($scope, Entity, ngDialog) {
     var editMode = false,
         prevId;
     if ($scope.ngDialogData && $scope.ngDialogData.mode && $scope.ngDialogData.mode == "edit") editMode = true;

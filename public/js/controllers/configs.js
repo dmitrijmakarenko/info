@@ -1,4 +1,4 @@
-infoSys.controller('configsCntl', function ($scope, $timeout) {
+accessSettings.controller('configsCntl', function ($scope, $timeout) {
     /*$scope.infoValidateShow = false;
     $scope.validateRes = {};
 

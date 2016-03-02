@@ -1,4 +1,4 @@
-infoSys.controller('accountsCntl', function ($scope, Accounts) {
+accessSettings.controller('accountsCntl', function ($scope, Accounts) {
 
     $scope.go = function(account) {
         window.location = "#/accounts/" + account;
@@ -19,7 +19,7 @@ infoSys.controller('accountsCntl', function ($scope, Accounts) {
     });
 });
 
-infoSys.controller('accountCntl', function ($scope, $routeParams, Accounts) {
+accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts) {
     var account = $routeParams.account;
 
     $scope.createMode = (account != "!new");

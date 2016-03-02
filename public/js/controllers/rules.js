@@ -1,4 +1,4 @@
-infoSys.controller('rulesCntl', function ($scope, Rules) {
+accessSettings.controller('rulesCntl', function ($scope, Rules) {
 
     $scope.go = function(rule) {
         window.location = "#/rules/" + rule;
@@ -14,7 +14,7 @@ infoSys.controller('rulesCntl', function ($scope, Rules) {
 
 });
 
-infoSys.controller('ruleCntl', function ($scope, $routeParams, Rules) {
+accessSettings.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     var rule = $routeParams.rule,
         userNameById = {},
         groupNameById = {};

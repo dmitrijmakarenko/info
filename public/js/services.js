@@ -1,6 +1,6 @@
-var infoSysServices = angular.module('infoSysServices', ['ngResource']);
+var accessSettingsServices = angular.module('accessSettingsServices', ['ngResource']);
 
-infoSysServices.factory('informerControl', function() {
+accessSettingsServices.factory('informerControl', function() {
     return {
         status: null,
         message: null,
@@ -19,7 +19,7 @@ infoSysServices.factory('informerControl', function() {
     }
 });
 
-infoSysServices.factory('Entity', ['$resource',
+accessSettingsServices.factory('Entity', ['$resource',
     function($resource) {
         return {
             List: $resource('/entities', {}, { go: { method:'POST', isArray: true }}),
@@ -30,7 +30,7 @@ infoSysServices.factory('Entity', ['$resource',
         };
     }]);
 
-infoSysServices.factory('DataBase', ['$resource',
+accessSettingsServices.factory('DataBase', ['$resource',
     function($resource) {
         return {
             GetTables: $resource('/tables', {}, { go: { method:'POST', isArray: true }}),
@@ -39,7 +39,7 @@ infoSysServices.factory('DataBase', ['$resource',
         };
     }]);
 
-infoSysServices.factory('Accounts', ['$resource',
+accessSettingsServices.factory('Accounts', ['$resource',
     function($resource) {
         return {
             List: $resource('/users/list', {}, { go: { method:'POST', isArray: false }}),
@@ -49,7 +49,7 @@ infoSysServices.factory('Accounts', ['$resource',
         };
     }]);
 
-infoSysServices.factory('Groups', ['$resource',
+accessSettingsServices.factory('Groups', ['$resource',
     function($resource) {
         return {
             List: $resource('/groups/list', {}, { go: { method:'POST', isArray: false }}),
@@ -60,7 +60,7 @@ infoSysServices.factory('Groups', ['$resource',
         };
     }]);
 
-infoSysServices.factory('Rules', ['$resource',
+accessSettingsServices.factory('Rules', ['$resource',
     function($resource) {
         return {
             List: $resource('/rules/list', {}, { go: { method:'POST', isArray: false }}),
@@ -71,14 +71,7 @@ infoSysServices.factory('Rules', ['$resource',
         };
     }]);
 
-infoSysServices.factory('TestFunc', ['$resource',
-    function($resource) {
-        return {
-            Select: $resource('/testdata', {}, { go: { method:'POST', isArray: false }})
-        };
-    }]);
-
-infoSysServices.factory('Data', ['$resource',
+accessSettingsServices.factory('Data', ['$resource',
     function($resource) {
         return {
             Get: $resource('/data/get', {}, { go: { method:'POST', isArray: false, params : {params: '@params'} }})

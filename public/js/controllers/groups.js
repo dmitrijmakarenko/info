@@ -1,4 +1,4 @@
-infoSys.controller('groupsCntl', function ($scope, Groups) {
+accessSettings.controller('groupsCntl', function ($scope, Groups) {
     $scope.groups = [{id: 'group1'}, {id: 'group2'}, {id: 'group3'}];
 
     $scope.go = function(group) {
@@ -14,7 +14,7 @@ infoSys.controller('groupsCntl', function ($scope, Groups) {
     });
 });
 
-infoSys.controller('groupCntl', function ($scope, $routeParams, Groups) {
+accessSettings.controller('groupCntl', function ($scope, $routeParams, Groups) {
     var group = $routeParams.group;
 
     $scope.createMode = (group != "!new");

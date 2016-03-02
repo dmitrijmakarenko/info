@@ -1,4 +1,4 @@
-infoSys.controller('dbCntl', function ($scope, DataBase) {
+accessSettings.controller('dbCntl', function ($scope, DataBase) {
     var loadData = function() {
         if ($scope.showTables) {
             DataBase.GetTables.go(function(data) {
@@ -35,7 +35,7 @@ infoSys.controller('dbCntl', function ($scope, DataBase) {
     loadData();
 });
 
-infoSys.controller('testCntl', function ($scope, Data) {
+accessSettings.controller('testCntl', function ($scope, Data) {
     $scope.goTest = function() {
         if ($scope.user && $scope.table) {
 
