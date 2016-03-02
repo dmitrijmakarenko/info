@@ -95,7 +95,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 
 	var groupRules []RuleGroupItem
-	rows, err := DB.Query("SELECT DISTINCT rule, action FROM rules_p WHERE rule_group=$1", settings.Id)
+	rows, err := DB.Query("SELECT DISTINCT rule, action FROM "+TABLE_RULES_P+" WHERE rule_group=$1", settings.Id)
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -114,7 +114,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 		}
 	}
 
-	_, err = DB.Exec("DELETE FROM rules_p WHERE rule_group=$1", settings.Id)
+	_, err = DB.Exec("DELETE FROM "+TABLE_RULES_P+" WHERE rule_group=$1", settings.Id)
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -124,7 +124,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 		_, err = DB.Exec("INSERT INTO "+TABLE_GROUP_USER+"(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
 		for _, rule := range groupRules {
 			revel.INFO.Println("[add member]", member.Id)
-			_, err = DB.Exec("INSERT INTO rules_p(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
+			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_P+"(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
 		}
 	}
 	if err != nil {

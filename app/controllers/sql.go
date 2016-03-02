@@ -27,6 +27,8 @@ func InitDB() {
 	TABLE_USERS = "sys_users"
 	TABLE_GROUPS = "sys_groups"
 	TABLE_GROUP_USER = "sys_group_user"
+	TABLE_RULES = "rules"
+	TABLE_RULES_P = "rules_p"
 	revel.INFO.Println("DB Connected")
 }
 

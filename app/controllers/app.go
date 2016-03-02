@@ -284,7 +284,7 @@ func groupsList() (groups []GroupItem, err error) {
 func (c App) TestSelect() revel.Result {
 	user := "user1"
 	action := "select"
-	rows, err := DB.Query("SELECT rule FROM rules_p WHERE rule_role = $1 AND action = $2", user, action)
+	rows, err := DB.Query("SELECT rule FROM "+TABLE_RULES_P+" WHERE rule_role = $1 AND action = $2", user, action)
 	if err != nil {
 		revel.ERROR.Println("[test] select ", err)
 	} else {
