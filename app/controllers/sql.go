@@ -6,6 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "strconv"
 	"errors"
+	"strings"
 )
 
 var DB *sql.DB
@@ -173,9 +174,13 @@ func makeProtect(table string) (err error) {
 	return nil
 }
 
-func isProtect(table string) (protect bool) {
-
-	return false
+func isProtect(table string) (bool) {
+	protect := false
+	viewName := strings.Replace(table, "_protected", "", -1)
+	if strings.Contains(table, "_protected") && viewExist(viewName) && columnExist(table, "rule") {
+		protect = true
+	}
+	return protect
 }
 
 func listUsers() ([]string) {
@@ -194,6 +199,48 @@ func listUsers() ([]string) {
 		}
 	}
 	return usersArray
+}
+
+func viewExist(view string) (bool) {
+	viewExist := false
+	rows, err := DB.Query("select table_name from INFORMATION_SCHEMA.views WHERE table_schema = ANY (current_schemas(false))")
+	if err != nil {
+		revel.ERROR.Println(err)
+	}
+	for rows.Next() {
+		var table_name string
+		err := rows.Scan(&table_name)
+		if err != nil {
+			revel.ERROR.Println(err)
+		} else {
+			if table_name == view {
+				viewExist = true
+			}
+		}
+	}
+	return viewExist
+}
+
+func columnExist(table string, column string) (bool) {
+	columnExist := false
+	rows, err := DB.Query("SELECT  c.column_name FROM information_schema.tables t " +
+	"JOIN information_schema.columns c ON t.table_name = c.table_name " +
+	"WHERE t.table_schema = 'public' AND t.table_catalog = current_database() AND t.table_name = $1", table)
+	if err != nil {
+		revel.ERROR.Println(err)
+	}
+	for rows.Next() {
+		var columnName string
+		err := rows.Scan(&columnName)
+		if err != nil {
+			revel.ERROR.Println(err)
+		} else {
+			if columnName == column {
+				columnExist = true
+			}
+		}
+	}
+	return columnExist
 }
 
 func listColumns(table string) ([]string) {
