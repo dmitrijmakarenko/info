@@ -14,22 +14,30 @@ accessSettings.controller('groupsCntl', function ($scope, Groups) {
     });
 });
 
-accessSettings.controller('groupCntl', function ($scope, $routeParams, Groups) {
+accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog, Groups) {
     var group = $routeParams.group;
 
     $scope.createMode = (group != "!new");
     $scope.members = [];
     $scope.users = [];
 
+    Groups.Data.go(function(data) {
+        if (data.error) {
+            $scope.showErrorMsg(data.error);
+        } else {
+            $scope.users = data.users||[];
+            $scope.groups = data.groups||[];
+        }
+    });
+
     if (group != "!new") {
         Groups.Get.go({id: group}, function(data) {
             $scope.name = data.name;
             $scope.members = data.members||[];
             $scope.users = data.users||[];
-        });
-    } else {
-        Groups.Data.go(function(data) {
-            $scope.users = data.users||[];
+            if ($scope.groups instanceof Array && $scope.groups.length > 0) {
+
+            }
         });
     }
 
@@ -63,11 +71,30 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, Groups) {
         }
     };
 
+    $scope.parents = [];
+
+    $scope.showAddParent = function() {
+        ngDialog.open({
+            template: 'addParentDlg',
+            controller: 'addParentDlgCntl',
+            disableAnimation: true,
+            showClose: false,
+            scope: $scope
+        });
+    };
+
+    $scope.removeParent = function(idx) {
+        $scope.parents.splice(idx, 1);
+    };
 
     $scope.saveSettings = function() {
         var compileSettings = {};
         compileSettings.name = $scope.name;
         compileSettings.members = $scope.members;
+        compileSettings.parents = [];
+        for (var i = 0; i < $scope.parents.length; i++) {
+            compileSettings.parents.push($scope.parents[i].id);
+        }
         Groups.Update.go({id: group, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {
                 $scope.showErrorMsg(data.error);
@@ -88,4 +115,15 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, Groups) {
             }
         });
     };
+});
+
+accessSettings.controller('addParentDlgCntl', function ($scope, Groups, ngDialog) {
+
+    $scope.addParent = function() {
+        if ($scope.groupSelected) {
+            $scope.parents.push($scope.groupSelected);
+            ngDialog.close();
+        }
+    };
+
 });

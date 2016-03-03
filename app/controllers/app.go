@@ -38,6 +38,7 @@ func (c App) Index() revel.Result {
 var TABLE_USERS string
 var TABLE_GROUPS string
 var TABLE_GROUP_USER string
+var TABLE_GROUPS_STRUCT string
 var TABLE_RULES string
 var TABLE_RULES_P string
 

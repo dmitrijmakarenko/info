@@ -18,6 +18,8 @@ type GroupItem struct {
 
 type GroupData struct {
 	Users []UserItem `json:"users"`
+	Groups []GroupItem `json:"groups"`
+	Error string `json:"error"`
 }
 
 type GroupsList struct {
@@ -30,6 +32,7 @@ type GroupSettings struct {
 	Name string  `json:"name"`
 	Members []UserItem `json:"members"`
 	Users []UserItem `json:"users"`
+	Parents []string `json:"parents"`
 }
 
 func CreateGroupTable() (err error) {
@@ -123,12 +126,16 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	for _, member := range settings.Members {
 		_, err = DB.Exec("INSERT INTO "+TABLE_GROUP_USER+"(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
 		for _, rule := range groupRules {
-			revel.INFO.Println("[add member]", member.Id)
 			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_P+"(rule, rule_role, action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
 		}
 	}
 	if err != nil {
 		ret["error"] = err.Error()
+	}
+
+	for _, parent := range settings.Parents {
+		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", settings.Id, parent, 1)
+
 	}
 
 	return c.RenderJson(ret)
@@ -189,12 +196,17 @@ func (c GroupCntl) Get(id string) revel.Result {
 
 func (c GroupCntl) Data() revel.Result {
 	var ret GroupData
-	allUsers, err := usersList()
+	users, err := usersList()
 	if err != nil {
-		ret := make(map[string]string)
-		ret["error"] = err.Error()
+		ret.Error = err.Error()
 	} else {
-		ret.Users = allUsers
+		ret.Users = users
+	}
+	groups, err := groupsList()
+	if err != nil {
+		ret.Error = err.Error()
+	} else {
+		ret.Groups = groups
 	}
 	return c.RenderJson(ret)
 }

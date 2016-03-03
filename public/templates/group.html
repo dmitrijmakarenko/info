@@ -3,9 +3,6 @@
         <div class="row">
             <div class="desc">Название</div><div class="cont"><input type="text" ng-model="name"></div>
         </div>
-        <!--<div class="row">-->
-            <!--<div class="desc">Должность</div><div class="cont"><input type="text" ng-model="name"></div>-->
-        <!--</div>-->
 
     </div>
     <div class="users">
@@ -26,8 +23,28 @@
             </div>
         </div>
     </div>
+    <div class="hierarchy">
+        <div>Parents:</div>
+        <div class="parent-item" ng-repeat="parent in parents">
+            <div class="name">{{parent.name}}</div>
+            <div class="rm link" ng-click="removeParent($index)">Удалить</div>
+        </div>
+        <div class="add-parent link" ng-click="showAddParent()">Добавить</div>
+    </div>
+
     <div class="btn-bar">
         <div button func="saveSettings" text="Сохранить" loading="true"></div>
         <div button ng-show="createMode" func="deleteGroup" text="Удалить" clazz="remove"></div>
     </div>
 </div>
+
+<script type="text/ng-template" id="addParentDlg">
+    <div class="add-parent-dlg">
+        <div class="txt">Группы:</div>
+        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
+        <div class="btn-bar">
+            <div button func="acceptSettings" text="Применить" ng-click="addParent()"></div>
+            <div class="link" ng-click="closeThisDialog()">Отмена</div>
+        </div>
+    </div>
+</script>
