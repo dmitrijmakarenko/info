@@ -26,8 +26,9 @@
     <div class="hierarchy">
         <div>Parents:</div>
         <div class="parent-item" ng-repeat="parent in parents">
-            <div class="name">{{parent.name}}</div>
-            <div class="rm link" ng-click="removeParent($index)">Удалить</div>
+            <div class="name">{{getName(parent.id)}}</div>
+            <div class="level"> ({{parent.level}}) </div>
+            <div ng-if="parent.level == 1" class="rm link" ng-click="removeParent($index)">Удалить</div>
         </div>
         <div class="add-parent link" ng-click="showAddParent()">Добавить</div>
     </div>

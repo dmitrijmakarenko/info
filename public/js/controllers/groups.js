@@ -15,7 +15,8 @@ accessSettings.controller('groupsCntl', function ($scope, Groups) {
 });
 
 accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog, Groups) {
-    var group = $routeParams.group;
+    var group = $routeParams.group,
+        groupNameById = {};
 
     $scope.createMode = (group != "!new");
     $scope.members = [];
@@ -27,6 +28,9 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
         } else {
             $scope.users = data.users||[];
             $scope.groups = data.groups||[];
+            for (var i = 0; i < $scope.groups.length; i++) {
+                if ($scope.groups[i].id) groupNameById[$scope.groups[i].id] = $scope.groups[i].name||$scope.groups[i].id;
+            }
         }
     });
 
@@ -35,6 +39,7 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
             $scope.name = data.name;
             $scope.members = data.members||[];
             $scope.users = data.users||[];
+            $scope.parents = data.parents||[];
             if ($scope.groups instanceof Array && $scope.groups.length > 0) {
 
             }
@@ -83,6 +88,10 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
         });
     };
 
+    $scope.getName = function(id) {
+        return groupNameById[id]||"";
+    };
+
     $scope.removeParent = function(idx) {
         $scope.parents.splice(idx, 1);
     };
@@ -93,7 +102,10 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
         compileSettings.members = $scope.members;
         compileSettings.parents = [];
         for (var i = 0; i < $scope.parents.length; i++) {
-            compileSettings.parents.push($scope.parents[i].id);
+            var item = {};
+            item.id = $scope.parents[i].id;
+            item.level = 1;
+            compileSettings.parents.push(item);
         }
         Groups.Update.go({id: group, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {

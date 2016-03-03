@@ -16,6 +16,11 @@ type GroupItem struct {
 	Name string  `json:"name"`
 }
 
+type GroupParentItem struct {
+	Id string `json:"id"`
+	Level int  `json:"level"`
+}
+
 type GroupData struct {
 	Users []UserItem `json:"users"`
 	Groups []GroupItem `json:"groups"`
@@ -32,7 +37,8 @@ type GroupSettings struct {
 	Name string  `json:"name"`
 	Members []UserItem `json:"members"`
 	Users []UserItem `json:"users"`
-	Parents []string `json:"parents"`
+	Parents []GroupParentItem `json:"parents"`
+	Error string `json:"error"`
 }
 
 func CreateGroupTable() (err error) {
@@ -131,11 +137,33 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 	if err != nil {
 		ret["error"] = err.Error()
+		return c.RenderJson(ret)
 	}
 
 	for _, parent := range settings.Parents {
-		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", settings.Id, parent, 1)
-
+		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", settings.Id, parent.Id, 1)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+		rows, err = DB.Query("SELECT group_id,level FROM "+TABLE_GROUPS_STRUCT+" WHERE parent_id=$1", settings.Id)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+		for rows.Next() {
+			var groupId string
+			var level int
+			err := rows.Scan(&groupId, &level)
+			if err != nil {
+				ret["error"] = err.Error()
+			} else {
+				_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", groupId, parent.Id, level+1)
+			}
+		}
+		if err != nil {
+			ret["error"] = err.Error()
+		}
 	}
 
 	return c.RenderJson(ret)
@@ -148,16 +176,16 @@ func (c GroupCntl) Get(id string) revel.Result {
 	rowsUsers, err := DB.Query("SELECT user_id FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", id)
 	allUsers, err := usersList()
 	if err != nil {
-		revel.ERROR.Println(err)
-	} else {
-		for rowsUsers.Next() {
-			var id string
-			err := rowsUsers.Scan(&id)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				usersGroup = append(usersGroup, id)
-			}
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	for rowsUsers.Next() {
+		var id string
+		err := rowsUsers.Scan(&id)
+		if err != nil {
+			ret.Error = err.Error()
+		} else {
+			usersGroup = append(usersGroup, id)
 		}
 	}
 	var isMember bool
@@ -175,22 +203,42 @@ func (c GroupCntl) Get(id string) revel.Result {
 		}
 	}
 	if err != nil {
-		revel.ERROR.Println("[get group]", err)
-		ret := make(map[string]string)
-		ret["error"] = err.Error()
+		ret.Error = err.Error()
 		return c.RenderJson(ret)
-	} else {
-		for rows.Next() {
-			var name string
-			err := rows.Scan(&name)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				ret.Id = id
-				ret.Name = name
-			}
+	}
+	for rows.Next() {
+		var name string
+		err := rows.Scan(&name)
+		if err != nil {
+			ret.Error = err.Error()
+			return c.RenderJson(ret)
+		} else {
+			ret.Id = id
+			ret.Name = name
 		}
 	}
+
+	//get parents
+	rows, err = DB.Query("SELECT parent_id,level FROM "+TABLE_GROUPS_STRUCT+" WHERE group_id=$1", id)
+	if err != nil {
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	for rows.Next() {
+		var id string
+		var level int
+		err := rows.Scan(&id, &level)
+		if err != nil {
+			ret.Error = err.Error()
+			return c.RenderJson(ret)
+		} else {
+			parent := GroupParentItem{}
+			parent.Id = id
+			parent.Level = level
+			ret.Parents = append(ret.Parents, parent)
+		}
+	}
+
 	return c.RenderJson(ret)
 }
 
