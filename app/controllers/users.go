@@ -27,7 +27,7 @@ type UserSettings struct {
 
 func (c UsersCntl) List() revel.Result {
 	var ret UsersList
-	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM " + TABLE_USERS)
+	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM " + TABLE_USERS+" ORDER BY id")
 	if err != nil {
 		revel.ERROR.Println("[get accounts]", err)
 		ret.Error = err.Error()

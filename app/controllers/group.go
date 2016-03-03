@@ -41,6 +41,15 @@ type GroupSettings struct {
 	Error string `json:"error"`
 }
 
+type GroupSettingsUpdate struct {
+	Id string `json:"id"`
+	Name string  `json:"name"`
+	Members []UserItem `json:"members"`
+	Users []UserItem `json:"users"`
+	ParentsAdd []GroupParentItem `json:"parentsAdd"`
+	ParentsRemove []GroupParentItem `json:"parentsRemove"`
+}
+
 func CreateGroupTable() (err error) {
 	_, err = DB.Exec("CREATE TABLE "+TABLE_GROUPS+" ( id uuid NOT NULL, name name ) WITH (OIDS=FALSE); ALTER TABLE sys_groups OWNER TO postgres;")
 	return err
@@ -48,7 +57,7 @@ func CreateGroupTable() (err error) {
 
 func (c GroupCntl) List() revel.Result {
 	var ret GroupsList
-	rows, err := DB.Query("SELECT id, name FROM "+TABLE_GROUPS)
+	rows, err := DB.Query("SELECT id, name FROM "+TABLE_GROUPS+" ORDER BY name")
 	if err != nil {
 		if strings.Contains(err.Error(), "does not exist") {
 			err = CreateGroupTable();
@@ -79,7 +88,7 @@ func (c GroupCntl) List() revel.Result {
 func (c GroupCntl) Update(id string, data string) revel.Result {
 	ret := make(map[string]string)
 	var err error
-	var settings GroupSettings
+	var settings GroupSettingsUpdate
 	err = json.Unmarshal([]byte(data), &settings)
 	if id == "!new" {
 		uuid, _ := uuid.NewV4()
@@ -140,7 +149,14 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 		return c.RenderJson(ret)
 	}
 
-	for _, parent := range settings.Parents {
+	for _, parent := range settings.ParentsRemove {
+		_, err = DB.Exec("DELETE FROM "+TABLE_GROUPS_STRUCT+" WHERE group_id=$1 AND parent_id=$2", settings.Id, parent.Id)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+	}
+	for _, parent := range settings.ParentsAdd {
 		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", settings.Id, parent.Id, 1)
 		if err != nil {
 			ret["error"] = err.Error()
@@ -157,6 +173,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 			err := rows.Scan(&groupId, &level)
 			if err != nil {
 				ret["error"] = err.Error()
+				return c.RenderJson(ret)
 			} else {
 				_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", groupId, parent.Id, level+1)
 			}
