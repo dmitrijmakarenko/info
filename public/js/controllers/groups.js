@@ -85,6 +85,12 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
     $scope.parents = [];
 
     $scope.showAddParent = function() {
+        $scope.groupsAvailable = [];
+        for (var i = 0; i < $scope.groups.length; i++) {
+            if ($scope.groups[i].id != group) {
+                $scope.groupsAvailable.push($scope.groups[i]);
+            }
+        }
         ngDialog.open({
             template: 'addParentDlg',
             controller: 'addParentDlgCntl',
@@ -130,7 +136,7 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
-                $scope.showSuccessMsg("Отдел сохранен");
+                $scope.showSuccessMsg("Группа сохранена");
                 window.location = "#/groups/";
             }
         });
@@ -141,7 +147,7 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
-                $scope.showSuccessMsg("Отдел удален");
+                $scope.showSuccessMsg("Группа удалена");
                 window.location = "#/groups/";
             }
         });

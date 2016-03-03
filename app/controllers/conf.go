@@ -5,6 +5,6 @@ const (
 	DB_USER     = "postgres"
 	DB_PASSWORD = "12345"
 	DB_NAME     = "infosystem"
-	DB_PORT     = "5432"
+	DB_PORT     = "5433"
 	DB_DRIVER   = "postgres"
 )

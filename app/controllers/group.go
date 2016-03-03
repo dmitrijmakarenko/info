@@ -162,6 +162,24 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 			ret["error"] = err.Error()
 			return c.RenderJson(ret)
 		}
+		//rules
+		rows, err = DB.Query("SELECT DISTINCT rule FROM "+TABLE_RULES_P+" WHERE rule_group=$1", settings.Id)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+		for rows.Next() {
+			var rule string
+			err := rows.Scan(&rule)
+			if err != nil {
+				ret["error"] = err.Error()
+				return c.RenderJson(ret)
+			} else {
+				revel.INFO.Println("[update group]", rule)
+				//_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS_STRUCT+"(group_id, parent_id, level) VALUES ($1, $2, $3)", groupId, parent.Id, level+1)
+			}
+		}
+
 		rows, err = DB.Query("SELECT group_id,level FROM "+TABLE_GROUPS_STRUCT+" WHERE parent_id=$1", settings.Id)
 		if err != nil {
 			ret["error"] = err.Error()

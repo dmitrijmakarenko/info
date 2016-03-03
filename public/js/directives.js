@@ -67,6 +67,12 @@ accessSettingsDirectives.directive('leftpanel', function () {
             changePath(path);
 
             function changePath(path) {
+                var getRoot = /(.*\/)/,
+                    match = path.match(getRoot);
+                if (match && match.length > 1) {
+                    path = match[0];
+                    path = path.replace(/\//g, "");
+                }
                 for (var i = 0; i < $scope.items.length; i++) {
                     if ($scope.items[i].path == path) {
                         $scope.items[i].clazz = "active";

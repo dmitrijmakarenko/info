@@ -24,11 +24,13 @@
         </div>
     </div>
     <div class="hierarchy">
-        <div>Parents:</div>
-        <div class="parent-item" ng-repeat="parent in parents">
-            <div class="name">{{getName(parent.id)}}</div>
-            <div class="level"> ({{parent.level}}) </div>
-            <div ng-if="parent.level == 1" class="rm link" ng-click="removeParent($index)">Удалить</div>
+        <div class="title">Группы выше:</div>
+        <div class="parents-wrap">
+            <div class="parent-item" ng-repeat="parent in parents">
+                <div class="name">{{getName(parent.id)}}</div>
+                <div class="level"> ({{parent.level}}) </div>
+                <div ng-if="parent.level == 1" class="rm link" ng-click="removeParent($index)">Удалить</div>
+            </div>
         </div>
         <div class="add-parent link" ng-click="showAddParent()">Добавить</div>
     </div>
@@ -42,7 +44,7 @@
 <script type="text/ng-template" id="addParentDlg">
     <div class="add-parent-dlg">
         <div class="txt">Группы:</div>
-        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="groups" property="name" selected="groupSelected"></dropdown></div>
+        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="groupsAvailable" property="name" selected="groupSelected"></dropdown></div>
         <div class="btn-bar">
             <div button func="acceptSettings" text="Применить" ng-click="addParent()"></div>
             <div class="link" ng-click="closeThisDialog()">Отмена</div>

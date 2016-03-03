@@ -56,16 +56,35 @@
 
   .hierarchy {
 
-    .parent-item > * {
-      display: inline-block;
+    .title {
+      font-size: 16px;
+      margin-bottom: 10px;
     }
-    .parent-item {
+    .parents-wrap {
+      font-size: 0;
+      margin-bottom: 10px;
 
-      .name {
-
+      .parent-item > * {
+        display: inline-block;
       }
-      .rm {
+      .parent-item {
+        background-color: #ffffff;
+        line-height: 20px;
+        height: 20px;
+        padding: 5px 0 5px 10px;
 
+        .name {
+          font-size: 14px;
+          width: 100px;
+        }
+        .level {
+          font-size: 14px;
+          font-style: italic;
+          width: 50px;
+        }
+        .rm {
+
+        }
       }
     }
   }
@@ -120,6 +139,8 @@
     .item {
       width: 200px;
       height: 40px;
+      line-height: 40px;
+      padding-left: 10px;
     }
   }
 }
