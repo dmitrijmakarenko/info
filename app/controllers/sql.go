@@ -145,23 +145,21 @@ func entityGet(table string) (DataEntity, error) {
 }
 
 func makeProtect(table string) (err error) {
-	revel.INFO.Println("make protect", table)
-	_, err = DB.Exec("ALTER TABLE " + table + " ADD COLUMN rule uuid")
+	rows, err := DB.Query("SELECT protect_table($1) AS num", table)
 	if err != nil {
-		revel.ERROR.Println("[make protect] add column ", err)
+		revel.ERROR.Println("[make protect]", err)
 		return err
 	}
-	_, err = DB.Exec("ALTER TABLE " + table + " RENAME TO " + table + "_protected")
-	if err != nil {
-		revel.ERROR.Println("[make protect] rename ", err)
-		return err
+	for rows.Next() {
+		var num int
+		err := rows.Scan(&num)
+		if err != nil {
+			revel.ERROR.Println(err.Error())
+		} else {
+			revel.INFO.Println("[make protect] result", num)
+		}
 	}
-	_, err = DB.Exec("CREATE OR REPLACE VIEW " + table + " AS SELECT * FROM " + table + "_protected")
-	if err != nil {
-		revel.ERROR.Println("[make protect] create view ", err)
-		return err
-	}
-	users := listUsers()
+	/*users := listUsers()
 	for _, user := range users {
 		_, err = DB.Exec("GRANT ALL PRIVILEGES ON " + table + " TO " + user)
 		if err != nil {
@@ -171,7 +169,7 @@ func makeProtect(table string) (err error) {
 		if err != nil {
 			revel.ERROR.Println("[make protect] revoke for " + user, err)
 		}
-	}
+	}*/
 	return nil
 }
 
