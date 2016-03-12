@@ -21,6 +21,7 @@ type DataRecords struct {
 type DataParams struct {
 	Table string `json:"table"`
 	User string `json:"user"`
+	Token string `json:"token"`
 }
 
 func (c DataCntl) Get(params string) revel.Result {
@@ -37,6 +38,17 @@ func (c DataCntl) Get(params string) revel.Result {
 	revel.INFO.Println("[get data] table", p.Table)
 
 	//check user
+	var auth bool
+	err = DB.QueryRow("SELECT check_user($1,$2) AS auth", p.User, p.Token).Scan(&auth)
+	if err != nil {
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+
+	if !auth {
+		ret.Error = "authorization error"
+		return c.RenderJson(ret)
+	}
 
 	//get rights
 	rows, err := DB.Query("SELECT DISTINCT rule FROM "+TABLE_RULES_P+" WHERE rule_role=$1 AND action='select'", p.User)

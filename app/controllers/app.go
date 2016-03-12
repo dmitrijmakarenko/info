@@ -175,10 +175,12 @@ func (c App) GenerateDB() revel.Result {
 	return c.RenderJson(ret)
 }
 
-func (c App) ClearDB() revel.Result {
-	revel.INFO.Println("clear db")
+func (c App) Auth(user string, token string) revel.Result {
 	ret := make(map[string]string)
-	//cfg := readXML()
+	_, err := DB.Exec("INSERT INTO sys_tokens(user_id, token) VALUES ($1, $2)", user, token)
+	if err != nil {
+		ret["error"] = err.Error()
+	}
 	return c.RenderJson(ret)
 }
 

@@ -10,6 +10,7 @@ POST    /get_entity                             App.GetEntity
 POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
+POST    /auth                                   App.Auth
 POST    /testdata                               App.TestSelect
 
 POST    /users/:action                          UsersCntl.:action
@@ -17,6 +18,8 @@ POST    /groups/:action                         GroupCntl.:action
 POST    /rules/:action                          RuleCntl.:action
 
 POST    /data/:action                           DataCntl.:action
+
+POST    /test/:action                           TestCntl.:action
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
