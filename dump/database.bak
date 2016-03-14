@@ -10,6 +10,15 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
+-- Name: duplicate; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA duplicate;
+
+
+ALTER SCHEMA duplicate OWNER TO postgres;
+
+--
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
@@ -39,27 +48,128 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 SET search_path = public, pg_catalog;
 
+--
+-- Name: acs_check_user(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_check_user(text, text) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+cnt int;
+BEGIN
+SELECT COUNT(*) INTO cnt AS cnt FROM acs_tokens WHERE user_id=$1 AND token=$2;
+IF cnt > 0 THEN
+	RETURN TRUE;
+ELSE
+	RETURN FALSE;
+END IF;
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_check_user(text, text) OWNER TO postgres;
+
+--
+-- Name: acs_protect_table(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_protect_table(text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+BEGIN
+
+EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN rule uuid';
+EXECUTE 'ALTER TABLE '|| $1 ||' RENAME TO ' || $1 || '_protected';
+EXECUTE 'CREATE OR REPLACE VIEW  '|| $1 ||' AS SELECT * FROM ' || $1 || '_protected';
+
+RETURN '';
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_protect_table(text) OWNER TO postgres;
+
+--
+-- Name: acs_vcs_init(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_vcs_init() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+BEGIN
+
+CREATE SCHEMA duplicate;
+
+CREATE TABLE duplicate.acs_users AS SELECT * FROM public.acs_users;
+
+
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_vcs_init() OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_with_oids = false;
 
 --
--- Name: rules; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: acs_group_user; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE rules (
+CREATE TABLE acs_group_user (
+    group_id uuid,
+    user_id name
+);
+
+
+ALTER TABLE public.acs_group_user OWNER TO postgres;
+
+--
+-- Name: acs_groups; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE acs_groups (
+    id uuid NOT NULL,
+    name name
+);
+
+
+ALTER TABLE public.acs_groups OWNER TO postgres;
+
+--
+-- Name: acs_groups_struct; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE acs_groups_struct (
+    group_id uuid NOT NULL,
+    parent_id uuid,
+    level integer
+);
+
+
+ALTER TABLE public.acs_groups_struct OWNER TO postgres;
+
+--
+-- Name: acs_rules; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE acs_rules (
     rule uuid NOT NULL,
     rule_desc text
 );
 
 
-ALTER TABLE public.rules OWNER TO postgres;
+ALTER TABLE public.acs_rules OWNER TO postgres;
 
 --
--- Name: rules_p; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: acs_rules_p; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE rules_p (
+CREATE TABLE acs_rules_p (
     rule uuid NOT NULL,
     rule_role text NOT NULL,
     action text,
@@ -67,50 +177,25 @@ CREATE TABLE rules_p (
 );
 
 
-ALTER TABLE public.rules_p OWNER TO postgres;
+ALTER TABLE public.acs_rules_p OWNER TO postgres;
 
 --
--- Name: sys_group_user; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: acs_tokens; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE sys_group_user (
-    group_id uuid,
-    user_id name
+CREATE TABLE acs_tokens (
+    user_id text,
+    token text
 );
 
 
-ALTER TABLE public.sys_group_user OWNER TO postgres;
+ALTER TABLE public.acs_tokens OWNER TO postgres;
 
 --
--- Name: sys_groups; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: acs_users; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE sys_groups (
-    id uuid NOT NULL,
-    name name
-);
-
-
-ALTER TABLE public.sys_groups OWNER TO postgres;
-
---
--- Name: sys_groups_struct; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE sys_groups_struct (
-    group_id uuid NOT NULL,
-    parent_id uuid,
-    level integer
-);
-
-
-ALTER TABLE public.sys_groups_struct OWNER TO postgres;
-
---
--- Name: sys_users; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE sys_users (
+CREATE TABLE acs_users (
     id name NOT NULL,
     id_group text,
     id_parent text,
@@ -119,7 +204,33 @@ CREATE TABLE sys_users (
 );
 
 
-ALTER TABLE public.sys_users OWNER TO postgres;
+ALTER TABLE public.acs_users OWNER TO postgres;
+
+--
+-- Name: table_t_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE table_t_protected (
+    f1 text,
+    f2 text,
+    rule uuid
+);
+
+
+ALTER TABLE public.table_t_protected OWNER TO postgres;
+
+--
+-- Name: table_t; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW table_t AS
+ SELECT table_t_protected.f1,
+    table_t_protected.f2,
+    table_t_protected.rule
+   FROM table_t_protected;
+
+
+ALTER TABLE public.table_t OWNER TO postgres;
 
 --
 -- Name: test; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -184,20 +295,63 @@ CREATE VIEW testtable AS
 ALTER TABLE public.testtable OWNER TO postgres;
 
 --
--- Data for Name: rules; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: acs_group_user; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY rules (rule, rule_desc) FROM stdin;
+COPY acs_group_user (group_id, user_id) FROM stdin;
+3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	admin
+9a5942d9-4de5-49cc-787c-479bbe6c84bc	admin
+9a5942d9-4de5-49cc-787c-479bbe6c84bc	stid2
+a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	admin
+a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	stud12
+0d72916f-c023-4925-6dcd-87db6ef47c32	admin
+0d72916f-c023-4925-6dcd-87db6ef47c32	stid2
+70959605-c4d9-41c3-be33-f151e72365b5	stud12
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	admin
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stid2
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
+\.
+
+
+--
+-- Data for Name: acs_groups; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY acs_groups (id, name) FROM stdin;
+8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1
+1757d4cd-b661-4afc-63c0-d562b866b7e3	3
+8d391e82-759a-4992-507f-d8e9f943220c	5
+e7ba5167-8899-4adb-7e45-4da0ccdf59fa	4
+56ece860-65c1-46a1-7e0f-cf6a2a446359	2
+70959605-c4d9-41c3-be33-f151e72365b5	Отдел_2
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	Отдел_1
+\.
+
+
+--
+-- Data for Name: acs_groups_struct; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY acs_groups_struct (group_id, parent_id, level) FROM stdin;
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	70959605-c4d9-41c3-be33-f151e72365b5	1
+\.
+
+
+--
+-- Data for Name: acs_rules; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY acs_rules (rule, rule_desc) FROM stdin;
 a7c85b3d-54b3-4442-4410-58bacc2cfbc9	Документ_2
 4e3e5ce2-4109-4c2d-adf2-3a215035bb22	Документ_1
 \.
 
 
 --
--- Data for Name: rules_p; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: acs_rules_p; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY rules_p (rule, rule_role, action, rule_group) FROM stdin;
+COPY acs_rules_p (rule, rule_role, action, rule_group) FROM stdin;
 a7c85b3d-54b3-4442-4410-58bacc2cfbc9	stud12	insert	\N
 a7c85b3d-54b3-4442-4410-58bacc2cfbc9	admin	insert	\N
 4e3e5ce2-4109-4c2d-adf2-3a215035bb22	admin	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
@@ -207,61 +361,31 @@ a7c85b3d-54b3-4442-4410-58bacc2cfbc9	admin	insert	\N
 
 
 --
--- Data for Name: sys_group_user; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: acs_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY sys_group_user (group_id, user_id) FROM stdin;
-3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	admin
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	admin
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stid2
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
-9a5942d9-4de5-49cc-787c-479bbe6c84bc	admin
-9a5942d9-4de5-49cc-787c-479bbe6c84bc	stid2
-70959605-c4d9-41c3-be33-f151e72365b5	stud12
-a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	admin
-a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	stud12
+COPY acs_tokens (user_id, token) FROM stdin;
+admin	8shnv6271jodoisxuyy274g1b
+admin	8shnv6271jodoisxuyy274g1b
 \.
 
 
 --
--- Data for Name: sys_groups; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: acs_users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY sys_groups (id, name) FROM stdin;
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1
-1757d4cd-b661-4afc-63c0-d562b866b7e3	3
-56ece860-65c1-46a1-7e0f-cf6a2a446359	2
-8d391e82-759a-4992-507f-d8e9f943220c	5
-70959605-c4d9-41c3-be33-f151e72365b5	Отдел_2
-e7ba5167-8899-4adb-7e45-4da0ccdf59fa	4
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	Отдел_1
-3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	Главный
-\.
-
-
---
--- Data for Name: sys_groups_struct; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY sys_groups_struct (group_id, parent_id, level) FROM stdin;
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1757d4cd-b661-4afc-63c0-d562b866b7e3	1
-1757d4cd-b661-4afc-63c0-d562b866b7e3	e7ba5167-8899-4adb-7e45-4da0ccdf59fa	1
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	e7ba5167-8899-4adb-7e45-4da0ccdf59fa	2
-e7ba5167-8899-4adb-7e45-4da0ccdf59fa	8d391e82-759a-4992-507f-d8e9f943220c	1
-1757d4cd-b661-4afc-63c0-d562b866b7e3	8d391e82-759a-4992-507f-d8e9f943220c	2
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	8d391e82-759a-4992-507f-d8e9f943220c	3
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	1
-\.
-
-
---
--- Data for Name: sys_users; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY sys_users (id, id_group, id_parent, "position", name) FROM stdin;
+COPY acs_users (id, id_group, id_parent, "position", name) FROM stdin;
 admin	\N	\N	Admin	Admin
 stid2	\N	\N	Студент	Stud2
 stud12	\N	\N	Студент	Dima
+\.
+
+
+--
+-- Data for Name: table_t_protected; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY table_t_protected (f1, f2, rule) FROM stdin;
 \.
 
 
@@ -296,7 +420,7 @@ COPY testtable_protected (name, rule) FROM stdin;
 -- Name: pk_rule; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY rules
+ALTER TABLE ONLY acs_rules
     ADD CONSTRAINT pk_rule PRIMARY KEY (rule);
 
 
@@ -304,15 +428,15 @@ ALTER TABLE ONLY rules
 -- Name: fki_rule; Type: INDEX; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE INDEX fki_rule ON rules_p USING btree (rule);
+CREATE INDEX fki_rule ON acs_rules_p USING btree (rule);
 
 
 --
 -- Name: fk_rule; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY rules_p
-    ADD CONSTRAINT fk_rule FOREIGN KEY (rule) REFERENCES rules(rule);
+ALTER TABLE ONLY acs_rules_p
+    ADD CONSTRAINT fk_rule FOREIGN KEY (rule) REFERENCES acs_rules(rule);
 
 
 --
@@ -340,7 +464,6 @@ REVOKE ALL ON TABLE test_table_protected FROM postgres;
 REVOKE ALL ON TABLE test_table FROM PUBLIC;
 REVOKE ALL ON TABLE test_table FROM postgres;
 GRANT ALL ON TABLE test_table TO postgres;
-GRANT ALL ON TABLE test_table TO student1;
 
 
 --

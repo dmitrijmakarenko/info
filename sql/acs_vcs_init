@@ -1,0 +1,14 @@
+﻿CREATE OR REPLACE FUNCTION acs_vcs_init()
+  RETURNS void AS
+$BODY$
+DECLARE
+BEGIN
+
+CREATE SCHEMA duplicate;
+
+CREATE TABLE duplicate.acs_users AS SELECT * FROM public.acs_users;
+
+
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE

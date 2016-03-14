@@ -46,7 +46,7 @@ type RuleSettings struct {
 
 func (c RuleCntl) List() revel.Result {
 	var ret RulesList
-	rows, err := DB.Query("SELECT rule, rule_desc FROM rules")
+	rows, err := DB.Query("SELECT rule, rule_desc FROM "+TABLE_RULES)
 	if err != nil {
 		revel.ERROR.Println("[get rules]", err)
 		ret.Error = err.Error()
