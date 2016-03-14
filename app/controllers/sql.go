@@ -145,31 +145,11 @@ func entityGet(table string) (DataEntity, error) {
 }
 
 func makeProtect(table string) (err error) {
-	rows, err := DB.Query("SELECT protect_table($1) AS num", table)
+	var resError string
+	err = DB.QueryRow("SELECT protect_table($1) AS result", table).Scan(&resError)
 	if err != nil {
-		revel.ERROR.Println("[make protect]", err)
 		return err
 	}
-	for rows.Next() {
-		var num int
-		err := rows.Scan(&num)
-		if err != nil {
-			revel.ERROR.Println(err.Error())
-		} else {
-			revel.INFO.Println("[make protect] result", num)
-		}
-	}
-	/*users := listUsers()
-	for _, user := range users {
-		_, err = DB.Exec("GRANT ALL PRIVILEGES ON " + table + " TO " + user)
-		if err != nil {
-			revel.ERROR.Println("[make protect] grant for " + user, err)
-		}
-		_, err = DB.Exec("REVOKE ALL PRIVILEGES ON " + table + "_protected FROM " + user)
-		if err != nil {
-			revel.ERROR.Println("[make protect] revoke for " + user, err)
-		}
-	}*/
 	return nil
 }
 
@@ -186,7 +166,7 @@ func listUsers() ([]string) {
 	var usersArray []string
 	rows, err := DB.Query("SELECT usename FROM pg_user")
 	if err != nil {
-		revel.ERROR.Println("[list users] error ", err)
+		revel.ERROR.Println(err)
 	}
 	for rows.Next() {
 		var user string

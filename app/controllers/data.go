@@ -84,12 +84,15 @@ func (c DataCntl) Get(params string) revel.Result {
 	rulesList += ")"
 	revel.INFO.Println("[get data] rulesList", rulesList)
 
+	connstring := "host=" + DB_HOST + " port=" + DB_PORT + " user=" + p.User + " dbname=" + DB_NAME + " password=" + DB_PASSWORD + " sslmode=disable"
+	dbUser, err := sql.Open(DB_DRIVER, connstring)
+
 	//sql query
 	var stmt *sql.Stmt
 	if (hasRights) {
-		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
+		stmt, err = dbUser.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
 	} else {
-		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
+		stmt, err = dbUser.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
 	}
 	if err != nil {
 		revel.ERROR.Println("[get data] stmt", err)
@@ -107,11 +110,6 @@ func (c DataCntl) Get(params string) revel.Result {
 		return c.RenderJson(ret)
 	}
 	revel.INFO.Println("[get data] stmt", stmt)
-
-	/*query := fmt.Sprintf("SELECT * FROM t WHERE id Iargs := []int{1, 2, 3} qN (%s)", strings.Join(strings.Split(strings.Repeat("?", len(rules)), ""), ","))
-	stmt, _ := DB.Prepare(query)
-	revel.INFO.Println("[get data] stmt", stmt)
-	rows, _ = stmt.Query(rules...)*/
 
 	columnNames, err := rows.Columns()
 	ret.Columns = columnNames

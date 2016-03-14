@@ -181,6 +181,19 @@ func (c App) Auth(user string, token string) revel.Result {
 	if err != nil {
 		ret["error"] = err.Error()
 	}
+	users := listUsers()
+	exist := false
+	for _, u := range users {
+		if u == user {
+			exist = true
+		}
+	}
+	if !exist {
+		_, err := DB.Exec("CREATE ROLE " + user + " LOGIN")
+		if err != nil {
+			ret["error"] = err.Error()
+		}
+	}
 	return c.RenderJson(ret)
 }
 
