@@ -64,14 +64,6 @@ var TABLE_RULES_P string
 //}
 
 func (c App) GetEntities() revel.Result {
-//	var out []map[string]string
-//	entities := entityList();
-//	for _, ent := range entities {
-//		var entity = make(map[string]string)
-//		entity["id"] = ent.Id
-//		entity["name"] = ent.Name
-//		out = append(out, entity)
-//	}
 	return c.RenderJson(entityList())
 }
 
