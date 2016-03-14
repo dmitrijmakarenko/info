@@ -25,12 +25,13 @@ func InitDB() {
 	if err != nil {
 		revel.ERROR.Println("DB Error", err)
 	}
-	TABLE_USERS = "acs_users"
-	TABLE_GROUPS = "acs_groups"
-	TABLE_GROUP_USER = "acs_group_user"
-	TABLE_GROUPS_STRUCT = "acs_groups_struct"
-	TABLE_RULES = "acs_rules"
-	TABLE_RULES_P = "acs_rules_p"
+	ACS_PREFIX := "acs"
+	TABLE_USERS = ACS_PREFIX + "." + "users"
+	TABLE_GROUPS = ACS_PREFIX + "." + "groups"
+	TABLE_GROUP_USER = ACS_PREFIX + "." + "group_user"
+	TABLE_GROUPS_STRUCT = ACS_PREFIX + "." + "groups_struct"
+	TABLE_RULES = ACS_PREFIX + "." + "rules"
+	TABLE_RULES_P = ACS_PREFIX + "." + "rules_p"
 	revel.INFO.Println("DB Connected")
 }
 

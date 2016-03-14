@@ -2,12 +2,12 @@
   RETURNS void AS
 $BODY$
 DECLARE
+tablesACS text[];
 BEGIN
 
-CREATE SCHEMA duplicate;
+CREATE SCHEMA acs_copy;
 
-CREATE TABLE duplicate.acs_users AS SELECT * FROM public.acs_users;
-
+CREATE TABLE acs_copy.users AS SELECT * FROM acs.users;
 
 END;
 $BODY$
