@@ -19,13 +19,13 @@ CREATE SCHEMA acs;
 ALTER SCHEMA acs OWNER TO postgres;
 
 --
--- Name: duplicate; Type: SCHEMA; Schema: -; Owner: postgres
+-- Name: acs_copy; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
-CREATE SCHEMA duplicate;
+CREATE SCHEMA acs_copy;
 
 
-ALTER SCHEMA duplicate OWNER TO postgres;
+ALTER SCHEMA acs_copy OWNER TO postgres;
 
 --
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
@@ -108,13 +108,22 @@ CREATE FUNCTION acs_vcs_init() RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
-tablesACS text[];
+acs_table text;
+cnt int;
 BEGIN
 
-CREATE SCHEMA duplicate;
+SELECT COUNT(*) INTO cnt FROM information_schema.schemata WHERE schema_name = 'acs_copy';
+IF cnt = 0 THEN
+	CREATE SCHEMA acs_copy;
+END IF;
 
-CREATE TABLE duplicate.acs_users AS SELECT * FROM public.acs_users;
-
+FOR acs_table IN
+      SELECT quote_ident(table_name)
+      FROM   information_schema.tables
+      WHERE  table_schema = 'acs'AND table_type = 'BASE TABLE'
+   LOOP
+	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
+   END LOOP;
 
 END;
 $$;
@@ -218,13 +227,88 @@ CREATE TABLE users (
 
 ALTER TABLE acs.users OWNER TO postgres;
 
-SET search_path = duplicate, pg_catalog;
+SET search_path = acs_copy, pg_catalog;
 
 --
--- Name: acs_users; Type: TABLE; Schema: duplicate; Owner: postgres; Tablespace: 
+-- Name: group_user; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE acs_users (
+CREATE TABLE group_user (
+    group_id uuid,
+    user_id name
+);
+
+
+ALTER TABLE acs_copy.group_user OWNER TO postgres;
+
+--
+-- Name: groups; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE groups (
+    id uuid,
+    name name
+);
+
+
+ALTER TABLE acs_copy.groups OWNER TO postgres;
+
+--
+-- Name: groups_struct; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE groups_struct (
+    group_id uuid,
+    parent_id uuid,
+    level integer
+);
+
+
+ALTER TABLE acs_copy.groups_struct OWNER TO postgres;
+
+--
+-- Name: rules; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE rules (
+    rule uuid,
+    rule_desc text
+);
+
+
+ALTER TABLE acs_copy.rules OWNER TO postgres;
+
+--
+-- Name: rules_p; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE rules_p (
+    rule uuid,
+    rule_role text,
+    action text,
+    rule_group name
+);
+
+
+ALTER TABLE acs_copy.rules_p OWNER TO postgres;
+
+--
+-- Name: tokens; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE tokens (
+    user_id text,
+    token text
+);
+
+
+ALTER TABLE acs_copy.tokens OWNER TO postgres;
+
+--
+-- Name: users; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE users (
     id name,
     id_group text,
     id_parent text,
@@ -233,7 +317,7 @@ CREATE TABLE acs_users (
 );
 
 
-ALTER TABLE duplicate.acs_users OWNER TO postgres;
+ALTER TABLE acs_copy.users OWNER TO postgres;
 
 SET search_path = public, pg_catalog;
 
@@ -262,6 +346,28 @@ CREATE VIEW table_t AS
 
 
 ALTER TABLE public.table_t OWNER TO postgres;
+
+--
+-- Name: tablesacs; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE tablesacs (
+    table_catalog information_schema.sql_identifier,
+    table_schema information_schema.sql_identifier,
+    table_name information_schema.sql_identifier,
+    table_type information_schema.character_data,
+    self_referencing_column_name information_schema.sql_identifier,
+    reference_generation information_schema.character_data,
+    user_defined_type_catalog information_schema.sql_identifier,
+    user_defined_type_schema information_schema.sql_identifier,
+    user_defined_type_name information_schema.sql_identifier,
+    is_insertable_into information_schema.yes_or_no,
+    is_typed information_schema.yes_or_no,
+    commit_action information_schema.character_data
+);
+
+
+ALTER TABLE public.tablesacs OWNER TO postgres;
 
 --
 -- Name: test; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -414,13 +520,89 @@ stud12	\N	\N	Студент	Dima
 \.
 
 
-SET search_path = duplicate, pg_catalog;
+SET search_path = acs_copy, pg_catalog;
 
 --
--- Data for Name: acs_users; Type: TABLE DATA; Schema: duplicate; Owner: postgres
+-- Data for Name: group_user; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
 --
 
-COPY acs_users (id, id_group, id_parent, "position", name) FROM stdin;
+COPY group_user (group_id, user_id) FROM stdin;
+3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	admin
+9a5942d9-4de5-49cc-787c-479bbe6c84bc	admin
+9a5942d9-4de5-49cc-787c-479bbe6c84bc	stid2
+a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	admin
+a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	stud12
+0d72916f-c023-4925-6dcd-87db6ef47c32	admin
+0d72916f-c023-4925-6dcd-87db6ef47c32	stid2
+70959605-c4d9-41c3-be33-f151e72365b5	stud12
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	admin
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stid2
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
+\.
+
+
+--
+-- Data for Name: groups; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY groups (id, name) FROM stdin;
+8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1
+1757d4cd-b661-4afc-63c0-d562b866b7e3	3
+8d391e82-759a-4992-507f-d8e9f943220c	5
+e7ba5167-8899-4adb-7e45-4da0ccdf59fa	4
+56ece860-65c1-46a1-7e0f-cf6a2a446359	2
+70959605-c4d9-41c3-be33-f151e72365b5	Отдел_2
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	Отдел_1
+\.
+
+
+--
+-- Data for Name: groups_struct; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY groups_struct (group_id, parent_id, level) FROM stdin;
+fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	70959605-c4d9-41c3-be33-f151e72365b5	1
+\.
+
+
+--
+-- Data for Name: rules; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY rules (rule, rule_desc) FROM stdin;
+a7c85b3d-54b3-4442-4410-58bacc2cfbc9	Документ_2
+4e3e5ce2-4109-4c2d-adf2-3a215035bb22	Документ_1
+\.
+
+
+--
+-- Data for Name: rules_p; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY rules_p (rule, rule_role, action, rule_group) FROM stdin;
+a7c85b3d-54b3-4442-4410-58bacc2cfbc9	stud12	insert	\N
+a7c85b3d-54b3-4442-4410-58bacc2cfbc9	admin	insert	\N
+4e3e5ce2-4109-4c2d-adf2-3a215035bb22	admin	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
+4e3e5ce2-4109-4c2d-adf2-3a215035bb22	stid2	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
+4e3e5ce2-4109-4c2d-adf2-3a215035bb22	stud12	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
+\.
+
+
+--
+-- Data for Name: tokens; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY tokens (user_id, token) FROM stdin;
+admin	8shnv6271jodoisxuyy274g1b
+admin	8shnv6271jodoisxuyy274g1b
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
+--
+
+COPY users (id, id_group, id_parent, "position", name) FROM stdin;
 admin	\N	\N	Admin	Admin
 stid2	\N	\N	Студент	Stud2
 stud12	\N	\N	Студент	Dima
@@ -434,6 +616,21 @@ SET search_path = public, pg_catalog;
 --
 
 COPY table_t_protected (f1, f2, rule) FROM stdin;
+\.
+
+
+--
+-- Data for Name: tablesacs; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY tablesacs (table_catalog, table_schema, table_name, table_type, self_referencing_column_name, reference_generation, user_defined_type_catalog, user_defined_type_schema, user_defined_type_name, is_insertable_into, is_typed, commit_action) FROM stdin;
+infosystem	acs	users	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	groups	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	group_user	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	groups_struct	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	rules	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	rules_p	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
+infosystem	acs	tokens	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
 \.
 
 

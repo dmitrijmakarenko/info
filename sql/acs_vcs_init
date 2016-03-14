@@ -2,12 +2,22 @@
   RETURNS void AS
 $BODY$
 DECLARE
-tablesACS text[];
+acs_table text;
+cnt int;
 BEGIN
 
-CREATE SCHEMA acs_copy;
+SELECT COUNT(*) INTO cnt FROM information_schema.schemata WHERE schema_name = 'acs_copy';
+IF cnt = 0 THEN
+	CREATE SCHEMA acs_copy;
+END IF;
 
-CREATE TABLE acs_copy.users AS SELECT * FROM acs.users;
+FOR acs_table IN
+      SELECT quote_ident(table_name)
+      FROM   information_schema.tables
+      WHERE  table_schema = 'acs'AND table_type = 'BASE TABLE'
+   LOOP
+	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
+   END LOOP;
 
 END;
 $BODY$
