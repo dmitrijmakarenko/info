@@ -26,10 +26,14 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
 
     if (account != "!new") {
         Accounts.Get.go({id: account}, function(data) {
-            console.log(data);
-            $scope.id = account;
-            $scope.name = data.name;
-            $scope.position = data.position;
+            console.log("get user", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.id = account;
+                $scope.name = data.name;
+                $scope.position = data.position;
+            }
         });
     }
 
