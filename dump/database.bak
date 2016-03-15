@@ -80,6 +80,42 @@ $_$;
 ALTER FUNCTION public.acs_check_user(text, text) OWNER TO postgres;
 
 --
+-- Name: acs_install(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_install() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+cnt int;
+BEGIN
+
+SELECT COUNT(*) INTO cnt FROM information_schema.schemata WHERE schema_name = 'acs';
+IF cnt = 0 THEN
+	CREATE SCHEMA acs;
+END IF;
+
+--users
+CREATE TABLE IF NOT EXISTS acs.users (
+	record_uuid uuid NOT NULL,
+	id text NOT NULL,
+	position_user text,
+	realname text
+);
+--groups
+CREATE TABLE IF NOT EXISTS acs.groups (
+	record_uuid uuid NOT NULL,
+	group_id text NOT NULL,
+	realname text
+);
+
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_install() OWNER TO postgres;
+
+--
 -- Name: acs_protect_table(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -154,8 +190,9 @@ ALTER TABLE acs.group_user OWNER TO postgres;
 --
 
 CREATE TABLE groups (
-    id uuid,
-    name name
+    record_uuid uuid NOT NULL,
+    group_id text NOT NULL,
+    realname text
 );
 
 
@@ -217,11 +254,10 @@ ALTER TABLE acs.tokens OWNER TO postgres;
 --
 
 CREATE TABLE users (
-    id name,
-    id_group text,
-    id_parent text,
-    "position" name,
-    name name
+    record_uuid uuid NOT NULL,
+    id text NOT NULL,
+    position_user text,
+    realname text
 );
 
 
@@ -449,6 +485,10 @@ a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	stud12
 fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	admin
 fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stid2
 fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
+6472b16e-bc6f-4554-7521-f5c467761f33	dima
+fe0271cc-e84a-4822-7701-5fc9b5d1d61c	user01
+fe0271cc-e84a-4822-7701-5fc9b5d1d61c	dima
+fe0271cc-e84a-4822-7701-5fc9b5d1d61c	admin
 \.
 
 
@@ -456,14 +496,9 @@ fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
 -- Data for Name: groups; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY groups (id, name) FROM stdin;
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1
-1757d4cd-b661-4afc-63c0-d562b866b7e3	3
-8d391e82-759a-4992-507f-d8e9f943220c	5
-e7ba5167-8899-4adb-7e45-4da0ccdf59fa	4
-56ece860-65c1-46a1-7e0f-cf6a2a446359	2
-70959605-c4d9-41c3-be33-f151e72365b5	Отдел_2
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	Отдел_1
+COPY groups (record_uuid, group_id, realname) FROM stdin;
+51a3fa31-27d0-41cd-a237-073930e49936	6472b16e-bc6f-4554-7521-f5c467761f33	Группа1
+b070c055-afc2-4aa8-8a55-05649cfe7262	fe0271cc-e84a-4822-7701-5fc9b5d1d61c	Группа2
 \.
 
 
@@ -513,10 +548,10 @@ admin	8shnv6271jodoisxuyy274g1b
 -- Data for Name: users; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY users (id, id_group, id_parent, "position", name) FROM stdin;
-admin	\N	\N	Admin	Admin
-stid2	\N	\N	Студент	Stud2
-stud12	\N	\N	Студент	Dima
+COPY users (record_uuid, id, position_user, realname) FROM stdin;
+f6f40a1e-06ae-42b1-bba6-56f42e64e0ec	admin	Администратор	Администратор
+68bd53ad-0c5d-49cf-af6b-e522f5b9608f	dima	Студент	Дмитрий
+7b325513-c25f-45c3-917f-3ec898f7dd9e	user01		Пользователь
 \.
 
 
