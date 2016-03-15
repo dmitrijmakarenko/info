@@ -19,15 +19,6 @@ CREATE SCHEMA acs;
 ALTER SCHEMA acs OWNER TO postgres;
 
 --
--- Name: acs_copy; Type: SCHEMA; Schema: -; Owner: postgres
---
-
-CREATE SCHEMA acs_copy;
-
-
-ALTER SCHEMA acs_copy OWNER TO postgres;
-
---
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
@@ -58,6 +49,30 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 SET search_path = public, pg_catalog;
 
 --
+-- Name: acs_auth(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_auth(text, text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+BEGIN
+
+INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, $2, now() + interval '1' day);
+
+IF NOT EXISTS (SELECT * FROM   pg_catalog.pg_user WHERE  usename = $1) THEN
+      EXECUTE 'CREATE USER '|| $1 ||' WITH PASSWORD ' || quote_literal(12345);
+END IF;
+
+DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
+
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_auth(text, text) OWNER TO postgres;
+
+--
 -- Name: acs_check_user(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -67,7 +82,7 @@ CREATE FUNCTION acs_check_user(text, text) RETURNS boolean
 DECLARE
 cnt int;
 BEGIN
-SELECT COUNT(*) INTO cnt AS cnt FROM acs_tokens WHERE user_id=$1 AND token=$2;
+SELECT COUNT(*) INTO cnt FROM acs.tokens WHERE user_id=$1 AND token=$2 AND exp_date >= now();
 IF cnt > 0 THEN
 	RETURN TRUE;
 ELSE
@@ -135,6 +150,13 @@ CREATE TABLE IF NOT EXISTS acs.rules_data (
 	rule_action text,
 	rule_group text
 );
+--tokens
+CREATE TABLE IF NOT EXISTS acs.tokens (
+	record_id SERIAL PRIMARY KEY,
+	user_id text NOT NULL,
+	token text NOT NULL,
+	exp_date timestamp
+);
 
 END;
 $$;
@@ -146,17 +168,24 @@ ALTER FUNCTION public.acs_install() OWNER TO postgres;
 -- Name: acs_protect_table(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION acs_protect_table(text) RETURNS text
+CREATE FUNCTION acs_protect_table(text) RETURNS void
     LANGUAGE plpgsql
     AS $_$
 DECLARE
+user_name text;
 BEGIN
 
 EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN rule uuid';
 EXECUTE 'ALTER TABLE '|| $1 ||' RENAME TO ' || $1 || '_protected';
 EXECUTE 'CREATE OR REPLACE VIEW  '|| $1 ||' AS SELECT * FROM ' || $1 || '_protected';
 
-RETURN '';
+FOR user_name IN
+	SELECT usename FROM pg_user
+   LOOP
+	EXECUTE 'GRANT ALL PRIVILEGES ON ' || $1 || ' TO ' || user_name;
+	EXECUTE 'REVOKE ALL PRIVILEGES ON ' || $1 || '_protected FROM ' || user_name;
+   END LOOP;
+
 END;
 $_$;
 
@@ -378,12 +407,35 @@ ALTER SEQUENCE rules_record_id_seq OWNED BY rules.record_id;
 --
 
 CREATE TABLE tokens (
-    user_id text,
-    token text
+    record_id integer NOT NULL,
+    user_id text NOT NULL,
+    token text NOT NULL,
+    exp_date timestamp without time zone
 );
 
 
 ALTER TABLE acs.tokens OWNER TO postgres;
+
+--
+-- Name: tokens_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
+--
+
+CREATE SEQUENCE tokens_record_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE acs.tokens_record_id_seq OWNER TO postgres;
+
+--
+-- Name: tokens_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
+--
+
+ALTER SEQUENCE tokens_record_id_seq OWNED BY tokens.record_id;
+
 
 --
 -- Name: users; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
@@ -420,209 +472,49 @@ ALTER TABLE acs.users_record_id_seq OWNER TO postgres;
 ALTER SEQUENCE users_record_id_seq OWNED BY users.record_id;
 
 
-SET search_path = acs_copy, pg_catalog;
-
---
--- Name: group_user; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE group_user (
-    group_id uuid,
-    user_id name
-);
-
-
-ALTER TABLE acs_copy.group_user OWNER TO postgres;
-
---
--- Name: groups; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE groups (
-    id uuid,
-    name name
-);
-
-
-ALTER TABLE acs_copy.groups OWNER TO postgres;
-
---
--- Name: groups_struct; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE groups_struct (
-    group_id uuid,
-    parent_id uuid,
-    level integer
-);
-
-
-ALTER TABLE acs_copy.groups_struct OWNER TO postgres;
-
---
--- Name: rules; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE rules (
-    rule uuid,
-    rule_desc text
-);
-
-
-ALTER TABLE acs_copy.rules OWNER TO postgres;
-
---
--- Name: rules_p; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE rules_p (
-    rule uuid,
-    rule_role text,
-    action text,
-    rule_group name
-);
-
-
-ALTER TABLE acs_copy.rules_p OWNER TO postgres;
-
---
--- Name: tokens; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE tokens (
-    user_id text,
-    token text
-);
-
-
-ALTER TABLE acs_copy.tokens OWNER TO postgres;
-
---
--- Name: users; Type: TABLE; Schema: acs_copy; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE users (
-    id name,
-    id_group text,
-    id_parent text,
-    "position" name,
-    name name
-);
-
-
-ALTER TABLE acs_copy.users OWNER TO postgres;
-
 SET search_path = public, pg_catalog;
 
 --
--- Name: table_t_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: fruits; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE table_t_protected (
-    f1 text,
-    f2 text,
+CREATE TABLE fruits (
+    name name,
+    cnt integer
+);
+
+
+ALTER TABLE public.fruits OWNER TO postgres;
+
+--
+-- Name: test_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE test_protected (
+    id text,
+    name_p text,
+    property text,
+    price double precision,
     rule uuid
 );
 
 
-ALTER TABLE public.table_t_protected OWNER TO postgres;
+ALTER TABLE public.test_protected OWNER TO postgres;
 
 --
--- Name: table_t; Type: VIEW; Schema: public; Owner: postgres
+-- Name: test; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW table_t AS
- SELECT table_t_protected.f1,
-    table_t_protected.f2,
-    table_t_protected.rule
-   FROM table_t_protected;
-
-
-ALTER TABLE public.table_t OWNER TO postgres;
-
---
--- Name: tablesacs; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE tablesacs (
-    table_catalog information_schema.sql_identifier,
-    table_schema information_schema.sql_identifier,
-    table_name information_schema.sql_identifier,
-    table_type information_schema.character_data,
-    self_referencing_column_name information_schema.sql_identifier,
-    reference_generation information_schema.character_data,
-    user_defined_type_catalog information_schema.sql_identifier,
-    user_defined_type_schema information_schema.sql_identifier,
-    user_defined_type_name information_schema.sql_identifier,
-    is_insertable_into information_schema.yes_or_no,
-    is_typed information_schema.yes_or_no,
-    commit_action information_schema.character_data
-);
-
-
-ALTER TABLE public.tablesacs OWNER TO postgres;
-
---
--- Name: test; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE test (
-    num integer,
-    rule name
-);
+CREATE VIEW test AS
+ SELECT test_protected.id,
+    test_protected.name_p,
+    test_protected.property,
+    test_protected.price,
+    test_protected.rule
+   FROM test_protected;
 
 
 ALTER TABLE public.test OWNER TO postgres;
-
---
--- Name: test_table_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE test_table_protected (
-    field1 name,
-    field2 name,
-    rule uuid
-);
-
-
-ALTER TABLE public.test_table_protected OWNER TO postgres;
-
---
--- Name: test_table; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW test_table AS
- SELECT test_table_protected.field1,
-    test_table_protected.field2,
-    test_table_protected.rule
-   FROM test_table_protected;
-
-
-ALTER TABLE public.test_table OWNER TO postgres;
-
---
--- Name: testtable_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE testtable_protected (
-    name character(1)[],
-    rule uuid
-);
-
-
-ALTER TABLE public.testtable_protected OWNER TO postgres;
-
---
--- Name: testtable; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW testtable AS
- SELECT testtable_protected.name,
-    testtable_protected.rule
-   FROM testtable_protected;
-
-
-ALTER TABLE public.testtable OWNER TO postgres;
 
 SET search_path = acs, pg_catalog;
 
@@ -659,6 +551,13 @@ ALTER TABLE ONLY rules ALTER COLUMN record_id SET DEFAULT nextval('rules_record_
 --
 
 ALTER TABLE ONLY rules_data ALTER COLUMN record_id SET DEFAULT nextval('rules_data_record_id_seq'::regclass);
+
+
+--
+-- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
+--
+
+ALTER TABLE ONLY tokens ALTER COLUMN record_id SET DEFAULT nextval('tokens_record_id_seq'::regclass);
 
 
 --
@@ -725,8 +624,8 @@ SELECT pg_catalog.setval('groups_struct_record_id_seq', 1, true);
 --
 
 COPY rules (record_id, rule_id, rule_desc) FROM stdin;
-1	937dd1f3-70ea-479e-7b87-4afd1b380f06	Тест1
 2	43e930a5-4409-4d61-549c-4c11227643ae	Тест2
+1	937dd1f3-70ea-479e-7b87-4afd1b380f06	Тест1
 \.
 
 
@@ -735,13 +634,7 @@ COPY rules (record_id, rule_id, rule_desc) FROM stdin;
 --
 
 COPY rules_data (record_id, rule_id, rule_user, rule_action, rule_group) FROM stdin;
-1	937dd1f3-70ea-479e-7b87-4afd1b380f06	admin	select	\N
-8	43e930a5-4409-4d61-549c-4c11227643ae	admin	insert	aa2fe437-880d-4ad3-754f-5120467668a3
-9	43e930a5-4409-4d61-549c-4c11227643ae	admin	select	aa2fe437-880d-4ad3-754f-5120467668a3
-10	43e930a5-4409-4d61-549c-4c11227643ae	dima	insert	aa2fe437-880d-4ad3-754f-5120467668a3
-11	43e930a5-4409-4d61-549c-4c11227643ae	dima	select	aa2fe437-880d-4ad3-754f-5120467668a3
-12	43e930a5-4409-4d61-549c-4c11227643ae	user01	insert	aa2fe437-880d-4ad3-754f-5120467668a3
-13	43e930a5-4409-4d61-549c-4c11227643ae	user01	select	aa2fe437-880d-4ad3-754f-5120467668a3
+14	937dd1f3-70ea-479e-7b87-4afd1b380f06	admin	select	\N
 \.
 
 
@@ -749,7 +642,7 @@ COPY rules_data (record_id, rule_id, rule_user, rule_action, rule_group) FROM st
 -- Name: rules_data_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('rules_data_record_id_seq', 13, true);
+SELECT pg_catalog.setval('rules_data_record_id_seq', 14, true);
 
 
 --
@@ -763,10 +656,17 @@ SELECT pg_catalog.setval('rules_record_id_seq', 2, true);
 -- Data for Name: tokens; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY tokens (user_id, token) FROM stdin;
-admin	8shnv6271jodoisxuyy274g1b
-admin	8shnv6271jodoisxuyy274g1b
+COPY tokens (record_id, user_id, token, exp_date) FROM stdin;
+15	admin	8shnv6271jodoisxuyy274g1b	2016-03-16 17:21:40.577662
+16	dima	8shnv6271jodoisxuyy274g1b	2016-03-16 17:45:17.954929
 \.
+
+
+--
+-- Name: tokens_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
+--
+
+SELECT pg_catalog.setval('tokens_record_id_seq', 16, true);
 
 
 --
@@ -787,144 +687,30 @@ COPY users (record_id, id, position_user, realname) FROM stdin;
 SELECT pg_catalog.setval('users_record_id_seq', 6, true);
 
 
-SET search_path = acs_copy, pg_catalog;
-
---
--- Data for Name: group_user; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY group_user (group_id, user_id) FROM stdin;
-3294a3ba-ccca-4e15-4aa8-b9d7d17894dc	admin
-9a5942d9-4de5-49cc-787c-479bbe6c84bc	admin
-9a5942d9-4de5-49cc-787c-479bbe6c84bc	stid2
-a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	admin
-a6c7b9ee-278e-49f1-7dee-2e6186ab3cb8	stud12
-0d72916f-c023-4925-6dcd-87db6ef47c32	admin
-0d72916f-c023-4925-6dcd-87db6ef47c32	stid2
-70959605-c4d9-41c3-be33-f151e72365b5	stud12
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	admin
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stid2
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	stud12
-\.
-
-
---
--- Data for Name: groups; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY groups (id, name) FROM stdin;
-8a83161a-56fe-4e78-6a2d-cc1ceeadf761	1
-1757d4cd-b661-4afc-63c0-d562b866b7e3	3
-8d391e82-759a-4992-507f-d8e9f943220c	5
-e7ba5167-8899-4adb-7e45-4da0ccdf59fa	4
-56ece860-65c1-46a1-7e0f-cf6a2a446359	2
-70959605-c4d9-41c3-be33-f151e72365b5	Отдел_2
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	Отдел_1
-\.
-
-
---
--- Data for Name: groups_struct; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY groups_struct (group_id, parent_id, level) FROM stdin;
-fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2	70959605-c4d9-41c3-be33-f151e72365b5	1
-\.
-
-
---
--- Data for Name: rules; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY rules (rule, rule_desc) FROM stdin;
-a7c85b3d-54b3-4442-4410-58bacc2cfbc9	Документ_2
-4e3e5ce2-4109-4c2d-adf2-3a215035bb22	Документ_1
-\.
-
-
---
--- Data for Name: rules_p; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY rules_p (rule, rule_role, action, rule_group) FROM stdin;
-a7c85b3d-54b3-4442-4410-58bacc2cfbc9	stud12	insert	\N
-a7c85b3d-54b3-4442-4410-58bacc2cfbc9	admin	insert	\N
-4e3e5ce2-4109-4c2d-adf2-3a215035bb22	admin	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
-4e3e5ce2-4109-4c2d-adf2-3a215035bb22	stid2	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
-4e3e5ce2-4109-4c2d-adf2-3a215035bb22	stud12	select	fc6ae330-4a2d-40b6-a46c-fb23a9fd83e2
-\.
-
-
---
--- Data for Name: tokens; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY tokens (user_id, token) FROM stdin;
-admin	8shnv6271jodoisxuyy274g1b
-admin	8shnv6271jodoisxuyy274g1b
-\.
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: acs_copy; Owner: postgres
---
-
-COPY users (id, id_group, id_parent, "position", name) FROM stdin;
-admin	\N	\N	Admin	Admin
-stid2	\N	\N	Студент	Stud2
-stud12	\N	\N	Студент	Dima
-\.
-
-
 SET search_path = public, pg_catalog;
 
 --
--- Data for Name: table_t_protected; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: fruits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY table_t_protected (f1, f2, rule) FROM stdin;
+COPY fruits (name, cnt) FROM stdin;
+name1	2
+name2	2
+name3	2
+name3	6
 \.
 
 
 --
--- Data for Name: tablesacs; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: test_protected; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY tablesacs (table_catalog, table_schema, table_name, table_type, self_referencing_column_name, reference_generation, user_defined_type_catalog, user_defined_type_schema, user_defined_type_name, is_insertable_into, is_typed, commit_action) FROM stdin;
-infosystem	acs	users	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	groups	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	group_user	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	groups_struct	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	rules	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	rules_p	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-infosystem	acs	tokens	BASE TABLE	\N	\N	\N	\N	\N	YES	NO	\N
-\.
-
-
---
--- Data for Name: test; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY test (num, rule) FROM stdin;
-1	\N
-3	4e3e5ce2-4109-4c2d-adf2-3a215035bb22
-22	999e5ce2-4109-4c2d-adf2-3a215035bb22
-\.
-
-
---
--- Data for Name: test_table_protected; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY test_table_protected (field1, field2, rule) FROM stdin;
-\.
-
-
---
--- Data for Name: testtable_protected; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY testtable_protected (name, rule) FROM stdin;
+COPY test_protected (id, name_p, property, price, rule) FROM stdin;
+1	name1	s	120	\N
+5	name5	v	124	\N
+2	name2	s	150	\N
+4	name4	z	120	\N
+3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06
 \.
 
 
@@ -971,6 +757,14 @@ ALTER TABLE ONLY rules
 
 
 --
+-- Name: tokens_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY tokens
+    ADD CONSTRAINT tokens_pkey PRIMARY KEY (record_id);
+
+
+--
 -- Name: users_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
 --
 
@@ -991,37 +785,22 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 SET search_path = public, pg_catalog;
 
 --
--- Name: test_table_protected; Type: ACL; Schema: public; Owner: postgres
+-- Name: test_protected; Type: ACL; Schema: public; Owner: postgres
 --
 
-REVOKE ALL ON TABLE test_table_protected FROM PUBLIC;
-REVOKE ALL ON TABLE test_table_protected FROM postgres;
-
-
---
--- Name: test_table; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE test_table FROM PUBLIC;
-REVOKE ALL ON TABLE test_table FROM postgres;
-GRANT ALL ON TABLE test_table TO postgres;
+REVOKE ALL ON TABLE test_protected FROM PUBLIC;
+REVOKE ALL ON TABLE test_protected FROM postgres;
 
 
 --
--- Name: testtable_protected; Type: ACL; Schema: public; Owner: postgres
+-- Name: test; Type: ACL; Schema: public; Owner: postgres
 --
 
-REVOKE ALL ON TABLE testtable_protected FROM PUBLIC;
-REVOKE ALL ON TABLE testtable_protected FROM postgres;
-
-
---
--- Name: testtable; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE testtable FROM PUBLIC;
-REVOKE ALL ON TABLE testtable FROM postgres;
-GRANT ALL ON TABLE testtable TO postgres;
+REVOKE ALL ON TABLE test FROM PUBLIC;
+REVOKE ALL ON TABLE test FROM postgres;
+GRANT ALL ON TABLE test TO postgres;
+GRANT ALL ON TABLE test TO admin;
+GRANT ALL ON TABLE test TO dima;
 
 
 --
