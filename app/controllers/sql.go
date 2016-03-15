@@ -35,29 +35,6 @@ func InitDB() {
 	revel.INFO.Println("DB Connected")
 }
 
-func createTable(entity Entity) (err error) {
-	props := ""
-	for i, property := range entity.Properties {
-		props += property.Name + " " + property.Type
-		if (i != len(entity.Properties) - 1) {
-			props += " , "
-		}
-	}
-	_, err = DB.Exec("CREATE TABLE IF NOT EXISTS " + entity.Id + " ( " + props + " )")
-	if err != nil {
-		revel.ERROR.Println("create table error", err)
-	}
-	return err
-}
-
-func dropTable(entityId string) (err error) {
-	_, err = DB.Exec("DROP TABLE "+ entityId)
-	if err != nil {
-		revel.ERROR.Println("drop table error", err)
-	}
-	return err
-}
-
 func listTables() ([]string) {
 	var tableArray []string
 	rows, err := DB.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")
@@ -143,15 +120,6 @@ func entityGet(table string) (DataEntity, error) {
 	}
 	ret.Rows = retRows
 	return ret, nil
-}
-
-func makeProtect(table string) (err error) {
-	var resError string
-	err = DB.QueryRow("SELECT protect_table($1) AS result", table).Scan(&resError)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func isProtect(table string) (bool) {

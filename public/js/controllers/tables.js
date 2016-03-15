@@ -14,10 +14,12 @@ accessSettings.controller('tableCntl', function ($scope, $routeParams, Entity) {
     var table = $routeParams.tableId;
 
     Entity.Get.go({id: table}, function(data) {
-        if (!data.error) {
+        //console.log("table data", data);
+        if (data.error) {
+            $scope.showErrorMsg(data.error);
+        } else {
             $scope.entity = data;
             if (!$scope.entity.rows) $scope.entity.rows = [];
         }
-        console.log(data);
     });
 });

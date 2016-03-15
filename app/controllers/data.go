@@ -39,7 +39,7 @@ func (c DataCntl) Get(params string) revel.Result {
 
 	//check user
 	var auth bool
-	err = DB.QueryRow("SELECT check_user($1,$2) AS auth", p.User, p.Token).Scan(&auth)
+	err = DB.QueryRow("SELECT acs_check_user($1,$2) AS auth", p.User, p.Token).Scan(&auth)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)

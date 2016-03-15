@@ -14,7 +14,7 @@ END IF;
 FOR acs_table IN
       SELECT quote_ident(table_name)
       FROM   information_schema.tables
-      WHERE  table_schema = 'acs'AND table_type = 'BASE TABLE'
+      WHERE  table_schema = 'acs' AND table_type = 'BASE TABLE'
    LOOP
 	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
    END LOOP;

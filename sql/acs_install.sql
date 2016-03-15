@@ -50,6 +50,12 @@ CREATE TABLE IF NOT EXISTS acs.rules_data (
 	rule_action text,
 	rule_group text
 );
+--tokens
+CREATE TABLE IF NOT EXISTS acs.tokens (
+	user_id text NOT NULL,
+	token text NOT NULL,
+	exp_date timestamp
+);
 
 END;
 $BODY$
