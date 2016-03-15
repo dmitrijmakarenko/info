@@ -84,7 +84,7 @@ func (c DataCntl) Get(params string) revel.Result {
 	rulesList += ")"
 	revel.INFO.Println("[get data] rulesList", rulesList)
 
-	connstring := "host=" + DB_HOST + " port=" + DB_PORT + " user=" + p.User + " dbname=" + DB_NAME + " password=" + DB_PASSWORD + " sslmode=disable"
+	connstring := "host=" + DB_HOST + " port=" + DB_PORT + " user=" + p.User + " dbname=" + DB_NAME + " password=12345 sslmode=disable"
 	dbUser, err := sql.Open(DB_DRIVER, connstring)
 
 	//sql query

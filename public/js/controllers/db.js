@@ -28,7 +28,11 @@ accessSettings.controller('dbCntl', function ($scope, DataBase) {
 
     $scope.modify = function(table) {
         DataBase.Protect.go({table: table}, function(data) {
-            loadData();
+            if (data.error) {
+                $scope.showErrorMsg(data.error)
+            } else {
+                loadData();
+            }
         });
     };
 
