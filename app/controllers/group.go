@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"github.com/robfig/revel"
-	"strings"
 	"encoding/json"
 	"github.com/nu7hatch/gouuid"
 )
@@ -50,23 +49,12 @@ type GroupSettingsUpdate struct {
 	ParentsRemove []GroupParentItem `json:"parentsRemove"`
 }
 
-func CreateGroupTable() (err error) {
-	_, err = DB.Exec("CREATE TABLE "+TABLE_GROUPS+" ( id uuid NOT NULL, name name ) WITH (OIDS=FALSE); ALTER TABLE sys_groups OWNER TO postgres;")
-	return err
-}
-
 func (c GroupCntl) List() revel.Result {
 	var ret GroupsList
-	rows, err := DB.Query("SELECT id, name FROM "+TABLE_GROUPS+" ORDER BY name")
+	rows, err := DB.Query("SELECT group_id, realname FROM "+TABLE_GROUPS+" ORDER BY realname")
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") {
-			err = CreateGroupTable();
-			if err != nil {
-				ret.Error = err.Error()
-			}
-		} else {
-			ret.Error = err.Error()
-		}
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
 	} else {
 		for rows.Next() {
 			var id string
@@ -102,9 +90,9 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 
 	if id == "!new" {
-		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS+"(id, name) VALUES ($1, $2)", settings.Id, settings.Name)
+		_, err = DB.Exec("INSERT INTO "+TABLE_GROUPS+"(record_uuid, group_id, realname) VALUES (uuid_generate_v4(), $1, $2)", settings.Id, settings.Name)
 	} else {
-		_, err = DB.Exec("UPDATE "+TABLE_GROUPS+" SET name=$2 WHERE id=$1", settings.Id, settings.Name)
+		_, err = DB.Exec("UPDATE "+TABLE_GROUPS+" SET realname=$2 WHERE group_id=$1", settings.Id, settings.Name)
 	}
 	_, err = DB.Exec("DELETE FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", settings.Id)
 	if err != nil {
@@ -207,7 +195,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 func (c GroupCntl) Get(id string) revel.Result {
 	var ret GroupSettings
 	var usersGroup []string
-	rows, err := DB.Query("SELECT name FROM "+TABLE_GROUPS+" WHERE id=$1", id)
+	rows, err := DB.Query("SELECT realname FROM "+TABLE_GROUPS+" WHERE group_id=$1", id)
 	rowsUsers, err := DB.Query("SELECT user_id FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", id)
 	allUsers, err := usersList()
 	if err != nil {
@@ -296,9 +284,8 @@ func (c GroupCntl) Data() revel.Result {
 
 func (c GroupCntl) Delete(id string) revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Exec("DELETE FROM "+TABLE_GROUPS+" WHERE id=$1", id)
+	_, err := DB.Exec("DELETE FROM "+TABLE_GROUPS+" WHERE group_id=$1", id)
 	if err != nil {
-		revel.ERROR.Println("[delete group]", err)
 		ret["error"] = err.Error()
 	}
 	return c.RenderJson(ret)

@@ -11,7 +11,6 @@ POST    /tables                                 App.GetTables
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
 POST    /auth                                   App.Auth
-POST    /testdata                               App.TestSelect
 
 POST    /users/:action                          UsersCntl.:action
 POST    /groups/:action                         GroupCntl.:action

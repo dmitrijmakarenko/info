@@ -192,7 +192,6 @@ func (c App) Auth(user string, token string) revel.Result {
 func (c App) GetTables() revel.Result {
 	var ret []TableDB
 	tables := listTables()
-	//cfg := readXML()
 	for _, table := range tables {
 		var tableItem TableDB
 		protect := isProtect(table)
@@ -204,7 +203,6 @@ func (c App) GetTables() revel.Result {
 }
 
 func (c App) Protect(table string) revel.Result {
-	revel.INFO.Println("protect table", table)
 	ret := make(map[string]string)
 	err := makeProtect(table)
 	if err != nil {
@@ -216,7 +214,6 @@ func (c App) Protect(table string) revel.Result {
 func (c App) GetViews() revel.Result {
 	var ret []TableDB
 	tables := listViews()
-	//cfg := readXML()
 	for _, table := range tables {
 		var tableItem TableDB
 		protect := isProtect(table)
@@ -228,22 +225,21 @@ func (c App) GetViews() revel.Result {
 }
 
 func usersList() (users []UserItem, err error) {
-	rows, err := DB.Query("SELECT id, COALESCE(name, '') as name FROM " + TABLE_USERS)
+	rows, err := DB.Query("SELECT id, COALESCE(realname, '') as name FROM " + TABLE_USERS)
 	if err != nil {
-		revel.ERROR.Println("[get accounts]", err)
-	} else {
-		for rows.Next() {
-			var id string
-			var name string
-			err := rows.Scan(&id, &name)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				user := UserItem{}
-				user.Id = id
-				user.Name = name
-				users = append(users, user)
-			}
+		return users, err
+	}
+	for rows.Next() {
+		var id string
+		var name string
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			revel.ERROR.Println(err)
+		} else {
+			user := UserItem{}
+			user.Id = id
+			user.Name = name
+			users = append(users, user)
 		}
 	}
 	return users, err
@@ -252,60 +248,37 @@ func usersList() (users []UserItem, err error) {
 func getUsersByGroup(group string) (users []string, err error) {
 	rows, err := DB.Query("SELECT user_id FROM "+TABLE_GROUP_USER+" WHERE group_id=$1", group)
 	if err != nil {
-		revel.ERROR.Println("[getUsersByGroup]", err)
-	} else {
-		for rows.Next() {
-			var id string
-			err := rows.Scan(&id)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				users = append(users, id)
-			}
+		return users, err
+	}
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			return users, err
+		} else {
+			users = append(users, id)
 		}
 	}
 	return users, err
 }
 
 func groupsList() (groups []GroupItem, err error) {
-	rows, err := DB.Query("SELECT id,name FROM "+TABLE_GROUPS)
+	rows, err := DB.Query("SELECT group_id, realname FROM "+TABLE_GROUPS)
 	if err != nil {
-		revel.ERROR.Println("[get groups]", err)
-	} else {
-		for rows.Next() {
-			var id string
-			var name string
-			err := rows.Scan(&id, &name)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				group := GroupItem{}
-				group.Id = id
-				group.Name = name
-				groups = append(groups, group)
-			}
+		return groups, err
+	}
+	for rows.Next() {
+		var id string
+		var name string
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			return groups, err
+		} else {
+			group := GroupItem{}
+			group.Id = id
+			group.Name = name
+			groups = append(groups, group)
 		}
 	}
 	return groups, err
-}
-
-func (c App) TestSelect() revel.Result {
-	user := "user1"
-	action := "select"
-	rows, err := DB.Query("SELECT rule FROM "+TABLE_RULES_P+" WHERE rule_role = $1 AND action = $2", user, action)
-	if err != nil {
-		revel.ERROR.Println("[test] select ", err)
-	} else {
-		for rows.Next() {
-			var rule string
-			err := rows.Scan(&rule)
-			if err != nil {
-				revel.ERROR.Println(err)
-			} else {
-				revel.INFO.Println(rule)
-			}
-		}
-	}
-	ret := make(map[string]string)
-	return c.RenderJson(ret)
 }
