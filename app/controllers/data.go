@@ -51,7 +51,7 @@ func (c DataCntl) Get(params string) revel.Result {
 	}
 
 	//get rights
-	rows, err := DB.Query("SELECT DISTINCT rule FROM "+TABLE_RULES_P+" WHERE rule_role=$1 AND action='select'", p.User)
+	rows, err := DB.Query("SELECT DISTINCT rule_id FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", p.User)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)

@@ -40,7 +40,7 @@ var TABLE_GROUPS string
 var TABLE_GROUP_USER string
 var TABLE_GROUPS_STRUCT string
 var TABLE_RULES string
-var TABLE_RULES_P string
+var TABLE_RULES_DATA string
 
 //func (c App) GetEntity(id string, returnData bool) revel.Result {
 //	cfg := readXML()

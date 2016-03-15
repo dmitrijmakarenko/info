@@ -81,7 +81,7 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 		ret["error"] = "settings error format";
 	} else {
 		if id == "!new" {
-			_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(record_uuid, id, realname, position_user) VALUES (uuid_generate_v4(), $1, $2, $3)", settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(id, realname, position_user) VALUES ($1, $2, $3)", settings.Id, settings.Name, settings.Position)
 		} else {
 			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, realname=$3, position_user=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
 		}

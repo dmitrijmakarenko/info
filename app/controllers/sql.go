@@ -31,7 +31,7 @@ func InitDB() {
 	TABLE_GROUP_USER = ACS_PREFIX + "." + "group_user"
 	TABLE_GROUPS_STRUCT = ACS_PREFIX + "." + "groups_struct"
 	TABLE_RULES = ACS_PREFIX + "." + "rules"
-	TABLE_RULES_P = ACS_PREFIX + "." + "rules_p"
+	TABLE_RULES_DATA = ACS_PREFIX + "." + "rules_data"
 	revel.INFO.Println("DB Connected")
 }
 
