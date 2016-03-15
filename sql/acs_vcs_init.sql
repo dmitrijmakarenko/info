@@ -19,6 +19,8 @@ FOR acs_table IN
 	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
    END LOOP;
 
+INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
+
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
