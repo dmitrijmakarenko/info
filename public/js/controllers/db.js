@@ -60,21 +60,20 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
     };
 
     $scope.goTest = function() {
-        if ($scope.user && $scope.table) {
+        if ($scope.table) {
 
             var params = {};
-            params.user = $scope.user;
             params.table = $scope.table;
-            params.token = token||"";
+            params.token = token||$scope.token||"";
 
             Data.Get.go({params: JSON.stringify(params)}, function(data) {
-                console.log(data);
-                if (!data.error) {
-                    $scope.entity = data;
-                    if (!$scope.entity.rows) $scope.entity.rows = [];
-                } else {
+                console.log("get data", data);
+                if (data.error) {
                     $scope.entity = {};
                     $scope.showErrorMsg(data.error);
+                } else {
+                    $scope.entity = data;
+                    if (!$scope.entity.rows) $scope.entity.rows = [];
                 }
             });
         }

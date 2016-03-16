@@ -11,8 +11,6 @@ IF cnt > 0 THEN
 	token = uuid_generate_v4();
 	INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, token, now() + interval '1' day);
 	DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
-ELSE
-	RAISE notice 'wrong';
 END IF;
 
 RETURN token;

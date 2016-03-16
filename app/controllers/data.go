@@ -19,9 +19,8 @@ type DataRecords struct {
 }
 
 type DataParams struct {
-	Table string `json:"table"`
-	User string `json:"user"`
 	Token string `json:"token"`
+	Table string `json:"table"`
 }
 
 func (c DataCntl) Get(params string) revel.Result {
@@ -34,24 +33,23 @@ func (c DataCntl) Get(params string) revel.Result {
 		ret.Error = "invalid params"
 		return c.RenderJson(ret)
 	}
-	revel.INFO.Println("[get data] user", p.User)
 	revel.INFO.Println("[get data] table", p.Table)
 
 	//check user
-	var auth bool
-	err = DB.QueryRow("SELECT acs_check_user($1,$2) AS auth", p.User, p.Token).Scan(&auth)
+	var user string
+	err = DB.QueryRow("SELECT COALESCE(acs_get_user($1), '')", p.Token).Scan(&user)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
 	}
 
-	if !auth {
+	if user == "" {
 		ret.Error = "authorization error"
 		return c.RenderJson(ret)
 	}
 
 	//get rights
-	rows, err := DB.Query("SELECT DISTINCT rule_id FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", p.User)
+	rows, err := DB.Query("SELECT DISTINCT rule_id FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", user)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -110,7 +108,6 @@ func (c DataCntl) Get(params string) revel.Result {
 
 	columnNames, err := rows.Columns()
 	ret.Columns = columnNames
-	//ret.Columns = listColumns(p.Table)
 	var retRows [][]string
 	for rows.Next() {
 		var retRow []string
