@@ -14,6 +14,7 @@ END IF;
 CREATE TABLE IF NOT EXISTS acs.users (
 	record_id SERIAL PRIMARY KEY,
 	id text NOT NULL,
+	pass text NOT NULL,
 	position_user text,
 	realname text
 );
@@ -55,6 +56,15 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 	user_id text NOT NULL,
 	token text NOT NULL,
 	exp_date timestamp
+);
+--changes_history
+CREATE TABLE acs.changes_history
+(
+  change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+  change_date timestamp without time zone NOT NULL,
+  change_type text,
+  change_db text,
+  hash text
 );
 
 END;

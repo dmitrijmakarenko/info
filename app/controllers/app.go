@@ -41,11 +41,18 @@ var TABLE_GROUPS_STRUCT string
 var TABLE_RULES string
 var TABLE_RULES_DATA string
 
-func (c App) Auth(user string, token string) revel.Result {
+func (c App) Auth(user string, pass string) revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Query("SELECT acs_auth($1, $2)", user, token)
+	var token string
+	err := DB.QueryRow("SELECT acs_auth($1, $2)", user, pass).Scan(&token)
 	if err != nil {
 		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	if token != "" {
+		ret["token"] = token
+	} else {
+		ret["error"] = "wrong login or password"
 	}
 	return c.RenderJson(ret)
 }

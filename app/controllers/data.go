@@ -84,15 +84,12 @@ func (c DataCntl) Get(params string) revel.Result {
 	rulesList += ")"
 	revel.INFO.Println("[get data] rulesList", rulesList)
 
-	connstring := "host=" + DB_HOST + " port=" + DB_PORT + " user=" + p.User + " dbname=" + DB_NAME + " password=12345 sslmode=disable"
-	dbUser, err := sql.Open(DB_DRIVER, connstring)
-
 	//sql query
 	var stmt *sql.Stmt
 	if (hasRights) {
-		stmt, err = dbUser.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
+		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
 	} else {
-		stmt, err = dbUser.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
+		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
 	}
 	if err != nil {
 		revel.ERROR.Println("[get data] stmt", err)

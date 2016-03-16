@@ -2,21 +2,17 @@
   RETURNS void AS
 $BODY$
 DECLARE
-acs_table text;
-cnt int;
+tname text;
 BEGIN
 
-SELECT COUNT(*) INTO cnt FROM information_schema.schemata WHERE schema_name = 'acs_copy';
-IF cnt = 0 THEN
-	CREATE SCHEMA acs_copy;
-END IF;
-
-FOR acs_table IN
-      SELECT quote_ident(table_name)
-      FROM   information_schema.tables
-      WHERE  table_schema = 'acs' AND table_type = 'BASE TABLE'
+FOR tname IN
+	SELECT quote_ident(table_name)
+	FROM   information_schema.tables
+	WHERE  table_schema = 'public' AND table_type = 'BASE TABLE'
    LOOP
-	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
+	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN time_modified timestamp';
+	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN time_modified SET default current_timestamp';
+	EXECUTE 'UPDATE '|| tname ||' SET time_modified=current_timestamp';
    END LOOP;
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());

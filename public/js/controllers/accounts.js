@@ -9,10 +9,11 @@ accessSettings.controller('accountsCntl', function ($scope, Accounts) {
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {
-            for (var i = 0; i < data.accounts.length; i ++) {
+            var accounts = data.accounts||[];
+            for (var i = 0; i < accounts.length; i ++) {
                 var item = {};
-                item.id = data.accounts[i].id;
-                item.name = data.accounts[i].name||data.accounts[i].id;
+                item.id = accounts[i].id;
+                item.name = accounts[i].name||accounts[i].id;
                 $scope.accounts.push(item);
             }
         }
@@ -41,6 +42,7 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
         var compileSettings = {};
         compileSettings.id = $scope.id;
         compileSettings.name = $scope.name;
+        compileSettings.password = $scope.password;
         compileSettings.position = $scope.position;
         Accounts.Update.go({id: account, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {

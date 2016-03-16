@@ -22,13 +22,14 @@ type UsersList struct {
 type UserSettings struct {
 	Id string `json:"id"`
 	Name string `json:"name"`
+	Password string `json:"password"`
 	Position string `json:"position"`
 	Error string `json:"error"`
 }
 
 func (c UsersCntl) List() revel.Result {
 	var ret UsersList
-	rows, err := DB.Query("SELECT id, COALESCE(realname, '') as name FROM " + TABLE_USERS+" ORDER BY id")
+	rows, err := DB.Query("SELECT id, COALESCE(realname, '') as name FROM "+TABLE_USERS+" ORDER BY id")
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -81,9 +82,9 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 		ret["error"] = "settings error format";
 	} else {
 		if id == "!new" {
-			_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(id, realname, position_user) VALUES ($1, $2, $3)", settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(id, pass, realname, position_user) VALUES ($1, crypt($2, gen_salt('bf')), $3, $4)", settings.Id, settings.Password, settings.Name, settings.Position)
 		} else {
-			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, realname=$3, position_user=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
+			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, pass=crypt($3, gen_salt('bf')), realname=$4, position_user=$5 WHERE id=$1", id, settings.Id, settings.Password, settings.Name, settings.Position)
 		}
 		if err != nil {
 			ret["error"] = err.Error();

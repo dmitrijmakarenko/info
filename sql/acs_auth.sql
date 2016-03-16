@@ -1,17 +1,21 @@
 ﻿CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
- RETURNS void AS
+ RETURNS TEXT AS
 $BODY$
 DECLARE
+cnt int;
+token text;
 BEGIN
-
-INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, $2, now() + interval '1' day);
-
-IF NOT EXISTS (SELECT * FROM   pg_catalog.pg_user WHERE  usename = $1) THEN
-      EXECUTE 'CREATE USER '|| $1 ||' WITH PASSWORD ' || quote_literal(12345);
+token = '';
+SELECT COUNT(*) INTO cnt FROM acs.users WHERE id=$1 AND pass=crypt($2, pass);
+IF cnt > 0 THEN
+	token = uuid_generate_v4();
+	INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, token, now() + interval '1' day);
+	DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
+ELSE
+	RAISE notice 'wrong';
 END IF;
 
-DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
-
+RETURN token;
 END;
 $BODY$
  LANGUAGE plpgsql;

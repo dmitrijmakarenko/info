@@ -40,9 +40,16 @@ accessSettings.controller('dbCntl', function ($scope, DataBase) {
 });
 
 accessSettings.controller('testCntl', function ($scope, Data, Test) {
+    var token;
     $scope.auth = function() {
-        Test.Auth.go({user: $scope.userAuth, token: "8shnv6271jodoisxuyy274g1b"}, function(data) {
-            console.log(data);
+        Test.Auth.go({user: $scope.userName, pass: $scope.userPass}, function(data) {
+            //console.log("auth", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg(data.token);
+                token = data.token;
+            }
         });
     };
 
@@ -52,14 +59,13 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         });
     };
 
-
     $scope.goTest = function() {
         if ($scope.user && $scope.table) {
 
             var params = {};
             params.user = $scope.user;
             params.table = $scope.table;
-            params.token = "8shnv6271jodoisxuyy274g1b";
+            params.token = token||"";
 
             Data.Get.go({params: JSON.stringify(params)}, function(data) {
                 console.log(data);
