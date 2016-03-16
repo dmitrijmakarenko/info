@@ -33,6 +33,20 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
 --
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+--
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: 
 --
 
@@ -52,20 +66,24 @@ SET search_path = public, pg_catalog;
 -- Name: acs_auth(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION acs_auth(text, text) RETURNS void
+CREATE FUNCTION acs_auth(text, text) RETURNS text
     LANGUAGE plpgsql
     AS $_$
 DECLARE
+cnt int;
+token text;
 BEGIN
-
-INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, $2, now() + interval '1' day);
-
-IF NOT EXISTS (SELECT * FROM   pg_catalog.pg_user WHERE  usename = $1) THEN
-      EXECUTE 'CREATE USER '|| $1 ||' WITH PASSWORD ' || quote_literal(12345);
+token = '';
+SELECT COUNT(*) INTO cnt FROM acs.users WHERE id=$1 AND pass=crypt($2, pass);
+IF cnt > 0 THEN
+	token = uuid_generate_v4();
+	INSERT INTO acs.tokens(user_id, token, exp_date) VALUES ($1, token, now() + interval '1' day);
+	DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
+ELSE
+	RAISE notice 'wrong';
 END IF;
 
-DELETE FROM acs.tokens WHERE user_id=$1 AND exp_date < now();
-
+RETURN token;
 END;
 $_$;
 
@@ -114,6 +132,7 @@ END IF;
 CREATE TABLE IF NOT EXISTS acs.users (
 	record_id SERIAL PRIMARY KEY,
 	id text NOT NULL,
+	pass text NOT NULL,
 	position_user text,
 	realname text
 );
@@ -152,10 +171,18 @@ CREATE TABLE IF NOT EXISTS acs.rules_data (
 );
 --tokens
 CREATE TABLE IF NOT EXISTS acs.tokens (
-	record_id SERIAL PRIMARY KEY,
 	user_id text NOT NULL,
 	token text NOT NULL,
 	exp_date timestamp
+);
+--changes_history
+CREATE TABLE acs.changes_history
+(
+  change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+  change_date timestamp without time zone NOT NULL,
+  change_type text,
+  change_db text,
+  hash text
 );
 
 END;
@@ -200,22 +227,20 @@ CREATE FUNCTION acs_vcs_init() RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
-acs_table text;
-cnt int;
+tname text;
 BEGIN
 
-SELECT COUNT(*) INTO cnt FROM information_schema.schemata WHERE schema_name = 'acs_copy';
-IF cnt = 0 THEN
-	CREATE SCHEMA acs_copy;
-END IF;
-
-FOR acs_table IN
-      SELECT quote_ident(table_name)
-      FROM   information_schema.tables
-      WHERE  table_schema = 'acs'AND table_type = 'BASE TABLE'
+FOR tname IN
+	SELECT quote_ident(table_name)
+	FROM   information_schema.tables
+	WHERE  table_schema = 'public' AND table_type = 'BASE TABLE'
    LOOP
-	EXECUTE 'CREATE TABLE acs_copy.' || acs_table || ' AS SELECT * FROM acs.' || acs_table;
+	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN time_modified timestamp';
+	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN time_modified SET default current_timestamp';
+	EXECUTE 'UPDATE '|| tname ||' SET time_modified=current_timestamp';
    END LOOP;
+
+INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
 
 END;
 $$;
@@ -228,6 +253,21 @@ SET search_path = acs, pg_catalog;
 SET default_tablespace = '';
 
 SET default_with_oids = false;
+
+--
+-- Name: changes_history; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE changes_history (
+    change_uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    change_date timestamp without time zone NOT NULL,
+    change_type text,
+    change_db text,
+    hash text
+);
+
+
+ALTER TABLE acs.changes_history OWNER TO postgres;
 
 --
 -- Name: group_user; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
@@ -407,7 +447,6 @@ ALTER SEQUENCE rules_record_id_seq OWNED BY rules.record_id;
 --
 
 CREATE TABLE tokens (
-    record_id integer NOT NULL,
     user_id text NOT NULL,
     token text NOT NULL,
     exp_date timestamp without time zone
@@ -417,33 +456,13 @@ CREATE TABLE tokens (
 ALTER TABLE acs.tokens OWNER TO postgres;
 
 --
--- Name: tokens_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE tokens_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.tokens_record_id_seq OWNER TO postgres;
-
---
--- Name: tokens_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE tokens_record_id_seq OWNED BY tokens.record_id;
-
-
---
 -- Name: users; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE users (
     record_id integer NOT NULL,
     id text NOT NULL,
+    pass text NOT NULL,
     position_user text,
     realname text
 );
@@ -480,7 +499,8 @@ SET search_path = public, pg_catalog;
 
 CREATE TABLE fruits (
     name name,
-    cnt integer
+    cnt integer,
+    time_modified timestamp without time zone DEFAULT now()
 );
 
 
@@ -495,7 +515,8 @@ CREATE TABLE test_protected (
     name_p text,
     property text,
     price double precision,
-    rule uuid
+    rule uuid,
+    time_modified timestamp without time zone DEFAULT now()
 );
 
 
@@ -515,6 +536,18 @@ CREATE VIEW test AS
 
 
 ALTER TABLE public.test OWNER TO postgres;
+
+--
+-- Name: ttt; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE ttt (
+    val integer,
+    time_modified timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.ttt OWNER TO postgres;
 
 SET search_path = acs, pg_catalog;
 
@@ -557,14 +590,15 @@ ALTER TABLE ONLY rules_data ALTER COLUMN record_id SET DEFAULT nextval('rules_da
 -- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
 --
 
-ALTER TABLE ONLY tokens ALTER COLUMN record_id SET DEFAULT nextval('tokens_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
 ALTER TABLE ONLY users ALTER COLUMN record_id SET DEFAULT nextval('users_record_id_seq'::regclass);
+
+
+--
+-- Data for Name: changes_history; Type: TABLE DATA; Schema: acs; Owner: postgres
+--
+
+COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FROM stdin;
+\.
 
 
 --
@@ -572,10 +606,6 @@ ALTER TABLE ONLY users ALTER COLUMN record_id SET DEFAULT nextval('users_record_
 --
 
 COPY group_user (record_id, group_id, user_id) FROM stdin;
-1	fd6d33e9-ab21-445c-5b30-681c934bd9c2	dima
-5	aa2fe437-880d-4ad3-754f-5120467668a3	admin
-6	aa2fe437-880d-4ad3-754f-5120467668a3	dima
-7	aa2fe437-880d-4ad3-754f-5120467668a3	user01
 \.
 
 
@@ -583,7 +613,7 @@ COPY group_user (record_id, group_id, user_id) FROM stdin;
 -- Name: group_user_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('group_user_record_id_seq', 7, true);
+SELECT pg_catalog.setval('group_user_record_id_seq', 1, false);
 
 
 --
@@ -591,8 +621,7 @@ SELECT pg_catalog.setval('group_user_record_id_seq', 7, true);
 --
 
 COPY groups (record_id, group_id, realname) FROM stdin;
-1	fd6d33e9-ab21-445c-5b30-681c934bd9c2	Группа1
-2	aa2fe437-880d-4ad3-754f-5120467668a3	Группа2
+1	e9a2d9a6-5c1d-4f74-7fa5-79973c7031a2	Группа_1
 \.
 
 
@@ -600,7 +629,7 @@ COPY groups (record_id, group_id, realname) FROM stdin;
 -- Name: groups_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('groups_record_id_seq', 3, true);
+SELECT pg_catalog.setval('groups_record_id_seq', 1, true);
 
 
 --
@@ -608,7 +637,6 @@ SELECT pg_catalog.setval('groups_record_id_seq', 3, true);
 --
 
 COPY groups_struct (record_id, group_id, parent_id, level) FROM stdin;
-1	aa2fe437-880d-4ad3-754f-5120467668a3	fd6d33e9-ab21-445c-5b30-681c934bd9c2	1
 \.
 
 
@@ -616,7 +644,7 @@ COPY groups_struct (record_id, group_id, parent_id, level) FROM stdin;
 -- Name: groups_struct_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('groups_struct_record_id_seq', 1, true);
+SELECT pg_catalog.setval('groups_struct_record_id_seq', 1, false);
 
 
 --
@@ -624,8 +652,6 @@ SELECT pg_catalog.setval('groups_struct_record_id_seq', 1, true);
 --
 
 COPY rules (record_id, rule_id, rule_desc) FROM stdin;
-2	43e930a5-4409-4d61-549c-4c11227643ae	Тест2
-1	937dd1f3-70ea-479e-7b87-4afd1b380f06	Тест1
 \.
 
 
@@ -634,7 +660,6 @@ COPY rules (record_id, rule_id, rule_desc) FROM stdin;
 --
 
 COPY rules_data (record_id, rule_id, rule_user, rule_action, rule_group) FROM stdin;
-14	937dd1f3-70ea-479e-7b87-4afd1b380f06	admin	select	\N
 \.
 
 
@@ -642,41 +667,32 @@ COPY rules_data (record_id, rule_id, rule_user, rule_action, rule_group) FROM st
 -- Name: rules_data_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('rules_data_record_id_seq', 14, true);
+SELECT pg_catalog.setval('rules_data_record_id_seq', 1, false);
 
 
 --
 -- Name: rules_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('rules_record_id_seq', 2, true);
+SELECT pg_catalog.setval('rules_record_id_seq', 1, false);
 
 
 --
 -- Data for Name: tokens; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY tokens (record_id, user_id, token, exp_date) FROM stdin;
-15	admin	8shnv6271jodoisxuyy274g1b	2016-03-16 17:21:40.577662
-16	dima	8shnv6271jodoisxuyy274g1b	2016-03-16 17:45:17.954929
+COPY tokens (user_id, token, exp_date) FROM stdin;
+admin	58fac413-f605-4d00-8718-bcb495d03bc6	2016-03-17 18:00:10.238606
+admin	0ef148ab-9c69-484f-ac70-5afd837d9056	2016-03-17 18:10:33.629031
 \.
-
-
---
--- Name: tokens_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('tokens_record_id_seq', 16, true);
 
 
 --
 -- Data for Name: users; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY users (record_id, id, position_user, realname) FROM stdin;
-1	admin	Администратор	Администратор
-2	dima	Студент	Дмитрий
-6	user01		Пользователь1
+COPY users (record_id, id, pass, position_user, realname) FROM stdin;
+2	admin	$2a$06$sb75/0haA0a3456UZBJRQecCUJjM68j6AANn6.oPeubhKpjxcfHKG		Администратор
 \.
 
 
@@ -684,7 +700,7 @@ COPY users (record_id, id, position_user, realname) FROM stdin;
 -- Name: users_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('users_record_id_seq', 6, true);
+SELECT pg_catalog.setval('users_record_id_seq', 2, true);
 
 
 SET search_path = public, pg_catalog;
@@ -693,11 +709,11 @@ SET search_path = public, pg_catalog;
 -- Data for Name: fruits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY fruits (name, cnt) FROM stdin;
-name1	2
-name2	2
-name3	2
-name3	6
+COPY fruits (name, cnt, time_modified) FROM stdin;
+name1	2	2016-03-16 17:06:43.452493
+name2	2	2016-03-16 17:06:43.452493
+name3	2	2016-03-16 17:06:43.452493
+name3	6	2016-03-16 17:06:43.452493
 \.
 
 
@@ -705,12 +721,22 @@ name3	6
 -- Data for Name: test_protected; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY test_protected (id, name_p, property, price, rule) FROM stdin;
-1	name1	s	120	\N
-5	name5	v	124	\N
-2	name2	s	150	\N
-4	name4	z	120	\N
-3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06
+COPY test_protected (id, name_p, property, price, rule, time_modified) FROM stdin;
+1	name1	s	120	\N	2016-03-16 17:06:43.452493
+5	name5	v	124	\N	2016-03-16 17:06:43.452493
+2	name2	s	150	\N	2016-03-16 17:06:43.452493
+4	name4	z	120	\N	2016-03-16 17:06:43.452493
+3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	2016-03-16 17:06:43.452493
+\.
+
+
+--
+-- Data for Name: ttt; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY ttt (val, time_modified) FROM stdin;
+100	2016-03-16 17:06:43.452493
+10	2016-03-16 17:06:43.452493
 \.
 
 
@@ -754,14 +780,6 @@ ALTER TABLE ONLY rules_data
 
 ALTER TABLE ONLY rules
     ADD CONSTRAINT rules_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: tokens_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY tokens
-    ADD CONSTRAINT tokens_pkey PRIMARY KEY (record_id);
 
 
 --
