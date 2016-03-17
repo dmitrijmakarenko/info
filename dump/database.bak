@@ -113,6 +113,27 @@ $_$;
 ALTER FUNCTION public.acs_check_user(text, text) OWNER TO postgres;
 
 --
+-- Name: acs_get_user(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_get_user(text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+cnt int;
+user_auth text;
+BEGIN
+user_auth = '';
+SELECT user_id INTO user_auth FROM acs.tokens WHERE token=$1 AND exp_date >= now();
+
+RETURN user_auth;
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_get_user(text) OWNER TO postgres;
+
+--
 -- Name: acs_install(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -130,7 +151,7 @@ END IF;
 
 --users
 CREATE TABLE IF NOT EXISTS acs.users (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	id text NOT NULL,
 	pass text NOT NULL,
 	position_user text,
@@ -138,32 +159,38 @@ CREATE TABLE IF NOT EXISTS acs.users (
 );
 --groups
 CREATE TABLE IF NOT EXISTS acs.groups (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id text NOT NULL,
 	realname text
 );
 --group-user
 CREATE TABLE IF NOT EXISTS acs.group_user (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id uuid NOT NULL,
 	user_id text NOT NULL
 );
 --group-struct
 CREATE TABLE IF NOT EXISTS acs.groups_struct (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id uuid NOT NULL,
 	parent_id uuid,
 	level integer
 );
+--record_rule
+CREATE TABLE IF NOT EXISTS acs.record_rule (
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+	record_id uuid NOT NULL,
+	rule_id uuid NOT NULL
+);
 --rules
 CREATE TABLE IF NOT EXISTS acs.rules (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	rule_id uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
 CREATE TABLE IF NOT EXISTS acs.rules_data (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	rule_id uuid NOT NULL,
 	rule_user text,
 	rule_action text,
@@ -202,7 +229,9 @@ DECLARE
 user_name text;
 BEGIN
 
-EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN rule uuid';
+--EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
+--EXECUTE 'ALTER TABLE '|| $1 ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+--EXECUTE 'UPDATE '|| $1 ||' SET uuid_record=uuid_generate_v4()';
 EXECUTE 'ALTER TABLE '|| $1 ||' RENAME TO ' || $1 || '_protected';
 EXECUTE 'CREATE OR REPLACE VIEW  '|| $1 ||' AS SELECT * FROM ' || $1 || '_protected';
 
@@ -220,6 +249,26 @@ $_$;
 ALTER FUNCTION public.acs_protect_table(text) OWNER TO postgres;
 
 --
+-- Name: acs_table(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_table() RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+query_text text;
+BEGIN
+
+query_text = '(SELECT * FROM ttt)';
+
+RETURN query_text;
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_table() OWNER TO postgres;
+
+--
 -- Name: acs_vcs_init(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -235,9 +284,9 @@ FOR tname IN
 	FROM   information_schema.tables
 	WHERE  table_schema = 'public' AND table_type = 'BASE TABLE'
    LOOP
-	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN time_modified timestamp';
-	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN time_modified SET default current_timestamp';
-	EXECUTE 'UPDATE '|| tname ||' SET time_modified=current_timestamp';
+	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN uuid_record uuid';
+	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+	EXECUTE 'UPDATE '|| tname ||' SET uuid_record=uuid_generate_v4()';
    END LOOP;
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
@@ -247,6 +296,32 @@ $$;
 
 
 ALTER FUNCTION public.acs_vcs_init() OWNER TO postgres;
+
+--
+-- Name: trigger_test(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION trigger_test() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+BEGIN
+
+RAISE notice 'trigger work';
+RAISE notice 'trigger op %', TG_OP;
+RAISE notice 'trigger oid %', TG_RELID;
+RAISE notice 'trigger current_query %', current_query();
+RAISE notice 'trigger txid_current %', txid_current();
+--RAISE notice 'trigger old %', OLD;
+RAISE notice 'trigger new %', NEW;
+
+RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.trigger_test() OWNER TO postgres;
 
 SET search_path = acs, pg_catalog;
 
@@ -274,7 +349,7 @@ ALTER TABLE acs.changes_history OWNER TO postgres;
 --
 
 CREATE TABLE group_user (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id uuid NOT NULL,
     user_id text NOT NULL
 );
@@ -283,32 +358,11 @@ CREATE TABLE group_user (
 ALTER TABLE acs.group_user OWNER TO postgres;
 
 --
--- Name: group_user_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE group_user_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.group_user_record_id_seq OWNER TO postgres;
-
---
--- Name: group_user_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE group_user_record_id_seq OWNED BY group_user.record_id;
-
-
---
 -- Name: groups; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE groups (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id text NOT NULL,
     realname text
 );
@@ -317,32 +371,11 @@ CREATE TABLE groups (
 ALTER TABLE acs.groups OWNER TO postgres;
 
 --
--- Name: groups_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE groups_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.groups_record_id_seq OWNER TO postgres;
-
---
--- Name: groups_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE groups_record_id_seq OWNED BY groups.record_id;
-
-
---
 -- Name: groups_struct; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE groups_struct (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id uuid NOT NULL,
     parent_id uuid,
     level integer
@@ -352,32 +385,24 @@ CREATE TABLE groups_struct (
 ALTER TABLE acs.groups_struct OWNER TO postgres;
 
 --
--- Name: groups_struct_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
+-- Name: record_rule; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
-CREATE SEQUENCE groups_struct_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+CREATE TABLE record_rule (
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    record_id uuid NOT NULL,
+    rule_id uuid NOT NULL
+);
 
 
-ALTER TABLE acs.groups_struct_record_id_seq OWNER TO postgres;
-
---
--- Name: groups_struct_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE groups_struct_record_id_seq OWNED BY groups_struct.record_id;
-
+ALTER TABLE acs.record_rule OWNER TO postgres;
 
 --
 -- Name: rules; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE rules (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     rule_id uuid NOT NULL,
     rule_desc text
 );
@@ -390,7 +415,7 @@ ALTER TABLE acs.rules OWNER TO postgres;
 --
 
 CREATE TABLE rules_data (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     rule_id uuid NOT NULL,
     rule_user text,
     rule_action text,
@@ -399,48 +424,6 @@ CREATE TABLE rules_data (
 
 
 ALTER TABLE acs.rules_data OWNER TO postgres;
-
---
--- Name: rules_data_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE rules_data_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.rules_data_record_id_seq OWNER TO postgres;
-
---
--- Name: rules_data_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE rules_data_record_id_seq OWNED BY rules_data.record_id;
-
-
---
--- Name: rules_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE rules_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.rules_record_id_seq OWNER TO postgres;
-
---
--- Name: rules_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE rules_record_id_seq OWNED BY rules.record_id;
-
 
 --
 -- Name: tokens; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
@@ -460,7 +443,7 @@ ALTER TABLE acs.tokens OWNER TO postgres;
 --
 
 CREATE TABLE users (
-    record_id integer NOT NULL,
+    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     id text NOT NULL,
     pass text NOT NULL,
     position_user text,
@@ -469,27 +452,6 @@ CREATE TABLE users (
 
 
 ALTER TABLE acs.users OWNER TO postgres;
-
---
--- Name: users_record_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
---
-
-CREATE SEQUENCE users_record_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE acs.users_record_id_seq OWNER TO postgres;
-
---
--- Name: users_record_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
---
-
-ALTER SEQUENCE users_record_id_seq OWNED BY users.record_id;
-
 
 SET search_path = public, pg_catalog;
 
@@ -500,7 +462,7 @@ SET search_path = public, pg_catalog;
 CREATE TABLE fruits (
     name name,
     cnt integer,
-    time_modified timestamp without time zone DEFAULT now()
+    uuid_record uuid DEFAULT uuid_generate_v4()
 );
 
 
@@ -516,7 +478,7 @@ CREATE TABLE test_protected (
     property text,
     price double precision,
     rule uuid,
-    time_modified timestamp without time zone DEFAULT now()
+    uuid_record uuid DEFAULT uuid_generate_v4()
 );
 
 
@@ -543,55 +505,13 @@ ALTER TABLE public.test OWNER TO postgres;
 
 CREATE TABLE ttt (
     val integer,
-    time_modified timestamp without time zone DEFAULT now()
+    uuid_record uuid DEFAULT uuid_generate_v4()
 );
 
 
 ALTER TABLE public.ttt OWNER TO postgres;
 
 SET search_path = acs, pg_catalog;
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY group_user ALTER COLUMN record_id SET DEFAULT nextval('group_user_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY groups ALTER COLUMN record_id SET DEFAULT nextval('groups_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY groups_struct ALTER COLUMN record_id SET DEFAULT nextval('groups_struct_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY rules ALTER COLUMN record_id SET DEFAULT nextval('rules_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY rules_data ALTER COLUMN record_id SET DEFAULT nextval('rules_data_record_id_seq'::regclass);
-
-
---
--- Name: record_id; Type: DEFAULT; Schema: acs; Owner: postgres
---
-
-ALTER TABLE ONLY users ALTER COLUMN record_id SET DEFAULT nextval('users_record_id_seq'::regclass);
-
 
 --
 -- Data for Name: changes_history; Type: TABLE DATA; Schema: acs; Owner: postgres
@@ -605,53 +525,43 @@ COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FR
 -- Data for Name: group_user; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY group_user (record_id, group_id, user_id) FROM stdin;
+COPY group_user (uuid_record, group_id, user_id) FROM stdin;
+37e5220c-27bd-456e-8f25-f7c562e0bc75	fa609aec-70e0-446f-5c2f-f4c209e2eb53	user1
 \.
-
-
---
--- Name: group_user_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('group_user_record_id_seq', 1, false);
 
 
 --
 -- Data for Name: groups; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY groups (record_id, group_id, realname) FROM stdin;
-1	e9a2d9a6-5c1d-4f74-7fa5-79973c7031a2	Группа_1
+COPY groups (uuid_record, group_id, realname) FROM stdin;
+e1ebf749-55c1-4087-a95f-1e29eb3e19f1	fa609aec-70e0-446f-5c2f-f4c209e2eb53	Группа1
 \.
-
-
---
--- Name: groups_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('groups_record_id_seq', 1, true);
 
 
 --
 -- Data for Name: groups_struct; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY groups_struct (record_id, group_id, parent_id, level) FROM stdin;
+COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
 \.
 
 
 --
--- Name: groups_struct_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
+-- Data for Name: record_rule; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-SELECT pg_catalog.setval('groups_struct_record_id_seq', 1, false);
+COPY record_rule (uuid_record, record_id, rule_id) FROM stdin;
+2c5e6def-c98a-4d45-829e-4bb59504a1c5	443f66af-3ac5-4c18-9794-717d9d7d41c8	abfe8a4d-48f7-455d-7fd2-121401b8d4db
+\.
 
 
 --
 -- Data for Name: rules; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules (record_id, rule_id, rule_desc) FROM stdin;
+COPY rules (uuid_record, rule_id, rule_desc) FROM stdin;
+48b81c4e-9cd2-44ea-9e83-c828fd7e1f84	abfe8a4d-48f7-455d-7fd2-121401b8d4db	Тест1
 \.
 
 
@@ -659,22 +569,9 @@ COPY rules (record_id, rule_id, rule_desc) FROM stdin;
 -- Data for Name: rules_data; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules_data (record_id, rule_id, rule_user, rule_action, rule_group) FROM stdin;
+COPY rules_data (uuid_record, rule_id, rule_user, rule_action, rule_group) FROM stdin;
+417b45e1-ffd8-4f1e-a260-996dadb7dbaa	abfe8a4d-48f7-455d-7fd2-121401b8d4db	admin	select	\N
 \.
-
-
---
--- Name: rules_data_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('rules_data_record_id_seq', 1, false);
-
-
---
--- Name: rules_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('rules_record_id_seq', 1, false);
 
 
 --
@@ -682,8 +579,10 @@ SELECT pg_catalog.setval('rules_record_id_seq', 1, false);
 --
 
 COPY tokens (user_id, token, exp_date) FROM stdin;
-admin	58fac413-f605-4d00-8718-bcb495d03bc6	2016-03-17 18:00:10.238606
-admin	0ef148ab-9c69-484f-ac70-5afd837d9056	2016-03-17 18:10:33.629031
+admin	6fd97a9c-ddd8-4007-bceb-713cb0946bf8	2016-03-18 15:30:57.198354
+user1	af28b51d-657c-4849-a7d9-747e96af6747	2016-03-18 15:31:54.253701
+admin	a7e5b857-6e1c-4ad4-814b-efa6b6f39138	2016-03-18 15:48:45.145727
+user1	45dd38c9-f780-4435-94a4-bb76a1f45284	2016-03-18 15:49:54.95072
 \.
 
 
@@ -691,16 +590,10 @@ admin	0ef148ab-9c69-484f-ac70-5afd837d9056	2016-03-17 18:10:33.629031
 -- Data for Name: users; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY users (record_id, id, pass, position_user, realname) FROM stdin;
-2	admin	$2a$06$sb75/0haA0a3456UZBJRQecCUJjM68j6AANn6.oPeubhKpjxcfHKG		Администратор
+COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
+c6fb440b-3674-40a3-844d-2d0bbeae8395	admin	$2a$06$UlIPX8PiH4CRGVnFOq1VLOy5WeGYXQDu/Og1vmBVsF2y4L1p79zJ2		Администратор
+83d9f0da-89d2-411c-a4e5-aaa96b679d52	user1	$2a$06$dFrhh9o2GZgUOh5hxGTEKuCyn52Halx0pz4B6Kg1fuPhW.Q3YkN7a	Студент	Дмитрий
 \.
-
-
---
--- Name: users_record_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
---
-
-SELECT pg_catalog.setval('users_record_id_seq', 2, true);
 
 
 SET search_path = public, pg_catalog;
@@ -709,11 +602,11 @@ SET search_path = public, pg_catalog;
 -- Data for Name: fruits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY fruits (name, cnt, time_modified) FROM stdin;
-name1	2	2016-03-16 17:06:43.452493
-name2	2	2016-03-16 17:06:43.452493
-name3	2	2016-03-16 17:06:43.452493
-name3	6	2016-03-16 17:06:43.452493
+COPY fruits (name, cnt, uuid_record) FROM stdin;
+23231	3	c911c5a5-1438-4ea8-b661-85e6f9708b63
+23231	3	2b5525dc-6ba9-4355-9501-32cdf7cfcabb
+23231	3	0487c096-00e2-42a5-be54-75d95a125e29
+23231	3	f5d97b67-dffc-40fc-b3bd-d7435879fed0
 \.
 
 
@@ -721,12 +614,12 @@ name3	6	2016-03-16 17:06:43.452493
 -- Data for Name: test_protected; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY test_protected (id, name_p, property, price, rule, time_modified) FROM stdin;
-1	name1	s	120	\N	2016-03-16 17:06:43.452493
-5	name5	v	124	\N	2016-03-16 17:06:43.452493
-2	name2	s	150	\N	2016-03-16 17:06:43.452493
-4	name4	z	120	\N	2016-03-16 17:06:43.452493
-3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	2016-03-16 17:06:43.452493
+COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
+1	name1	s	120	\N	082914bc-d564-4861-8540-9c3f7d585327
+5	name5	v	124	\N	2356add5-2fe5-4f4b-a331-3c49eb0bd8ba
+2	name2	s	150	\N	192c88ad-d26a-462c-87a8-3f2505ade9a1
+4	name4	z	120	\N	fd9400f4-4129-42ac-b8d5-884f218617d6
+3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	a49a0ca6-1de7-45e5-b576-7d6b0698ac68
 \.
 
 
@@ -734,60 +627,18 @@ COPY test_protected (id, name_p, property, price, rule, time_modified) FROM stdi
 -- Data for Name: ttt; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY ttt (val, time_modified) FROM stdin;
-100	2016-03-16 17:06:43.452493
-10	2016-03-16 17:06:43.452493
+COPY ttt (val, uuid_record) FROM stdin;
+100	443f66af-3ac5-4c18-9794-717d9d7d41c8
+10	1c165c2a-f080-4077-b40f-72cbe2bb9418
+1	7c07c543-7ea7-4bd3-9b62-7bd8108842d5
 \.
 
 
-SET search_path = acs, pg_catalog;
-
 --
--- Name: group_user_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
+-- Name: trigger_test; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY group_user
-    ADD CONSTRAINT group_user_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: groups_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY groups
-    ADD CONSTRAINT groups_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: groups_struct_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY groups_struct
-    ADD CONSTRAINT groups_struct_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: rules_data_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY rules_data
-    ADD CONSTRAINT rules_data_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: rules_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY rules
-    ADD CONSTRAINT rules_pkey PRIMARY KEY (record_id);
-
-
---
--- Name: users_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (record_id);
+CREATE TRIGGER trigger_test AFTER INSERT OR DELETE OR UPDATE ON fruits FOR EACH ROW EXECUTE PROCEDURE trigger_test();
 
 
 --
@@ -799,8 +650,6 @@ REVOKE ALL ON SCHEMA public FROM postgres;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
-
-SET search_path = public, pg_catalog;
 
 --
 -- Name: test_protected; Type: ACL; Schema: public; Owner: postgres
