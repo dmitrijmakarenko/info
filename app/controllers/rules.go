@@ -46,7 +46,7 @@ type RuleSettings struct {
 
 func (c RuleCntl) List() revel.Result {
 	var ret RulesList
-	rows, err := DB.Query("SELECT rule_id, rule_desc FROM "+TABLE_RULES+" ORDER BY record_id")
+	rows, err := DB.Query("SELECT rule_id, rule_desc FROM "+TABLE_RULES+" ORDER BY rule_id")
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)

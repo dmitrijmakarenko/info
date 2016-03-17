@@ -85,9 +85,11 @@ func (c DataCntl) Get(params string) revel.Result {
 	//sql query
 	var stmt *sql.Stmt
 	if (hasRights) {
-		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.record_rule AS rules ON ("+p.Table+".uuid_record = rules.record_id) WHERE rule_id IS NULL OR rule_id IN " + rulesList)
+		//stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
 	} else {
-		stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.record_rule AS rules ON ("+p.Table+".uuid_record = rules.record_id) WHERE rule_id IS NULL")
+		//stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
 	}
 	if err != nil {
 		revel.ERROR.Println("[get data] stmt", err)

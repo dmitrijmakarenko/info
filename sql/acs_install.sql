@@ -12,7 +12,7 @@ END IF;
 
 --users
 CREATE TABLE IF NOT EXISTS acs.users (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	id text NOT NULL,
 	pass text NOT NULL,
 	position_user text,
@@ -20,32 +20,38 @@ CREATE TABLE IF NOT EXISTS acs.users (
 );
 --groups
 CREATE TABLE IF NOT EXISTS acs.groups (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id text NOT NULL,
 	realname text
 );
 --group-user
 CREATE TABLE IF NOT EXISTS acs.group_user (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id uuid NOT NULL,
 	user_id text NOT NULL
 );
 --group-struct
 CREATE TABLE IF NOT EXISTS acs.groups_struct (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	group_id uuid NOT NULL,
 	parent_id uuid,
 	level integer
 );
+--record_rule
+CREATE TABLE IF NOT EXISTS acs.record_rule (
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+	record_id uuid NOT NULL,
+	rule_id uuid NOT NULL
+);
 --rules
 CREATE TABLE IF NOT EXISTS acs.rules (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	rule_id uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
 CREATE TABLE IF NOT EXISTS acs.rules_data (
-	record_id SERIAL PRIMARY KEY,
+	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
 	rule_id uuid NOT NULL,
 	rule_user text,
 	rule_action text,

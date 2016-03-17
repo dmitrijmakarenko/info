@@ -10,9 +10,9 @@ FOR tname IN
 	FROM   information_schema.tables
 	WHERE  table_schema = 'public' AND table_type = 'BASE TABLE'
    LOOP
-	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN time_modified timestamp';
-	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN time_modified SET default current_timestamp';
-	EXECUTE 'UPDATE '|| tname ||' SET time_modified=current_timestamp';
+	EXECUTE 'ALTER TABLE '|| tname ||' ADD COLUMN uuid_record uuid';
+	EXECUTE 'ALTER TABLE '|| tname ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+	EXECUTE 'UPDATE '|| tname ||' SET uuid_record=uuid_generate_v4()';
    END LOOP;
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());

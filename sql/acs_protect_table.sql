@@ -5,7 +5,9 @@ DECLARE
 user_name text;
 BEGIN
 
-EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN rule uuid';
+--EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
+--EXECUTE 'ALTER TABLE '|| $1 ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+--EXECUTE 'UPDATE '|| $1 ||' SET uuid_record=uuid_generate_v4()';
 EXECUTE 'ALTER TABLE '|| $1 ||' RENAME TO ' || $1 || '_protected';
 EXECUTE 'CREATE OR REPLACE VIEW  '|| $1 ||' AS SELECT * FROM ' || $1 || '_protected';
 

@@ -125,7 +125,7 @@ func entityGet(table string) (DataEntity, error) {
 func isProtect(table string) (bool) {
 	protect := false
 	viewName := strings.Replace(table, "_protected", "", -1)
-	if strings.Contains(table, "_protected") && viewExist(viewName) && columnExist(table, "rule") {
+	if strings.Contains(table, "_protected") && viewExist(viewName) /*&& columnExist(table, "rule")*/ {
 		protect = true
 	}
 	return protect
