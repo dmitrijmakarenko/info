@@ -1,0 +1,10 @@
+﻿CREATE OR REPLACE FUNCTION acs_tg_audit()
+  RETURNS trigger AS
+$BODY$
+DECLARE
+
+BEGIN
+
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE

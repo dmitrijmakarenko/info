@@ -72,6 +72,12 @@ CREATE TABLE acs.changes_history
   change_db text,
   hash text
 );
+CREATE TABLE acs.record_changes
+(
+  record_uuid uuid NOT NULL,
+  time_modified timestamp without time zone NOT NULL,
+  table_name text NOT NULL
+);
 
 END;
 $BODY$
