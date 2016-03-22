@@ -211,11 +211,18 @@ CREATE TABLE acs.changes_history
   change_db text,
   hash text
 );
+--record_changes
 CREATE TABLE acs.record_changes
 (
   record_uuid uuid NOT NULL,
   time_modified timestamp without time zone NOT NULL,
   table_name text NOT NULL
+);
+--list tables
+CREATE TABLE acs.vcs_tables
+(
+  table_name text NOT NULL,
+  schema_name text NOT NULL
 );
 
 END;
@@ -302,36 +309,6 @@ $$;
 ALTER FUNCTION public.acs_tg_audit() OWNER TO postgres;
 
 --
--- Name: acs_vcs_add_table(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION acs_vcs_add_table(text) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-DECLARE
-ruuid text;
-BEGIN
-
-EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
-EXECUTE 'ALTER TABLE '|| $1 ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
-EXECUTE 'UPDATE '|| $1 ||' SET uuid_record=uuid_generate_v4()';
-
-FOR ruuid IN EXECUTE 'SELECT uuid_record FROM ' || $1
-	LOOP
-		EXECUTE 'INSERT INTO acs.record_changes(record_uuid, time_modified, table_name) VALUES('||quote_literal(ruuid)||', now(), '||quote_literal($1)||')';
-	END LOOP;
-
-EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
-AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
-EXECUTE PROCEDURE acs_tg_audit()';
-
-END;
-$_$;
-
-
-ALTER FUNCTION public.acs_vcs_add_table(text) OWNER TO postgres;
-
---
 -- Name: acs_vcs_compile(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -387,6 +364,59 @@ $$;
 
 
 ALTER FUNCTION public.acs_vcs_init() OWNER TO postgres;
+
+--
+-- Name: acs_vcs_table_add(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_vcs_table_add(text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+ruuid text;
+BEGIN
+
+EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
+EXECUTE 'ALTER TABLE '|| $1 ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+EXECUTE 'UPDATE '|| $1 ||' SET uuid_record=uuid_generate_v4()';
+
+FOR ruuid IN EXECUTE 'SELECT uuid_record FROM ' || $1
+	LOOP
+		EXECUTE 'INSERT INTO acs.record_changes(record_uuid, time_modified, table_name) VALUES('||quote_literal(ruuid)||', now(), '||quote_literal($1)||')';
+	END LOOP;
+
+EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
+AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
+EXECUTE PROCEDURE acs_tg_audit()';
+
+EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_vcs_table_add(text) OWNER TO postgres;
+
+--
+-- Name: acs_vcs_table_rm(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_vcs_table_rm(text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+BEGIN
+
+EXECUTE 'ALTER TABLE '|| $1 ||' DROP COLUMN IF EXISTS uuid_record';
+EXECUTE 'DELETE FROM acs.record_changes WHERE table_name='|| quote_literal($1);
+EXECUTE 'DELETE FROM acs.vcs_tables WHERE table_name='|| quote_literal($1);
+EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
+
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_vcs_table_rm(text) OWNER TO postgres;
 
 --
 -- Name: trigger_test(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -557,6 +587,18 @@ CREATE TABLE users (
 
 ALTER TABLE acs.users OWNER TO postgres;
 
+--
+-- Name: vcs_tables; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE vcs_tables (
+    table_name text NOT NULL,
+    schema_name text NOT NULL
+);
+
+
+ALTER TABLE acs.vcs_tables OWNER TO postgres;
+
 SET search_path = public, pg_catalog;
 
 --
@@ -565,8 +607,7 @@ SET search_path = public, pg_catalog;
 
 CREATE TABLE fruits (
     name name,
-    cnt integer,
-    uuid_record uuid DEFAULT uuid_generate_v4()
+    cnt integer
 );
 
 
@@ -581,8 +622,7 @@ CREATE TABLE test_protected (
     name_p text,
     property text,
     price double precision,
-    rule uuid,
-    uuid_record uuid DEFAULT uuid_generate_v4()
+    rule uuid
 );
 
 
@@ -622,7 +662,9 @@ SET search_path = acs, pg_catalog;
 --
 
 COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FROM stdin;
-1ec4106e-6f8c-49d1-8fb2-e7345801ffe8	2016-03-21 23:38:51.260553	init	infosystem	\N
+e8608f05-ede6-4bf0-8d5b-1c027ff3a1e4	2016-03-22 15:27:43.82419	compile	infosystem	d345b5866a6925f61fab2294476484b0
+18116f75-7c45-418c-8bfd-a4de94181ae9	2016-03-22 15:30:29.459226	compile	infosystem	ed7dafd1ef40029cd508377caf10a5eb
+abd6f39e-aba5-4087-b6aa-856b1c1305e4	2016-03-22 16:15:54.952324	compile	infosystem	b48edba73f6beed9f9287425c47199eb
 \.
 
 
@@ -631,7 +673,6 @@ COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FR
 --
 
 COPY group_user (uuid_record, group_id, user_id) FROM stdin;
-37e5220c-27bd-456e-8f25-f7c562e0bc75	fa609aec-70e0-446f-5c2f-f4c209e2eb53	user1
 \.
 
 
@@ -640,7 +681,7 @@ COPY group_user (uuid_record, group_id, user_id) FROM stdin;
 --
 
 COPY groups (uuid_record, group_id, realname) FROM stdin;
-e1ebf749-55c1-4087-a95f-1e29eb3e19f1	fa609aec-70e0-446f-5c2f-f4c209e2eb53	Группа1
+dca203c9-f968-407f-8bd7-353b2e25a91e	bf9e361f-16ab-485a-48bf-d2c7379c20dd	Группа 1
 \.
 
 
@@ -657,19 +698,10 @@ COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
 --
 
 COPY record_changes (record_uuid, time_modified, table_name) FROM stdin;
-e5216741-2c6b-46c7-b4e7-9e1921428c5e	2016-03-21 23:38:51.260553	ttt
-b3d5679a-97dd-4601-8b83-900c57960415	2016-03-21 23:38:51.260553	ttt
-e15ae88f-9572-4ee3-9876-9837899d8025	2016-03-21 23:38:51.260553	ttt
-432260b8-81bb-4312-a3c7-ad4d973ed534	2016-03-21 23:38:51.260553	fruits
-b17893e8-d9a2-4435-ae8e-51fe93716bb7	2016-03-21 23:38:51.260553	fruits
-8b243da6-fd12-40d8-92b7-477600abc654	2016-03-21 23:38:51.260553	fruits
-4923a4b4-29bd-4249-85bd-cd1383e8ea7b	2016-03-21 23:38:51.260553	fruits
-9c2f12e2-1d12-4e1f-b948-0feb3112a3da	2016-03-21 23:38:51.260553	test_protected
-a84be27e-6a9a-43b0-bdaf-56aae3e2ffb1	2016-03-21 23:38:51.260553	test_protected
-07755f9b-091b-4ed4-b612-e57f7c8386de	2016-03-21 23:38:51.260553	test_protected
-6d681457-2e06-4cb0-8ea0-5fc8526cf2c0	2016-03-21 23:38:51.260553	test_protected
-3ab2a3b7-374a-458b-9090-8efa1109191d	2016-03-21 23:38:51.260553	test_protected
-0251c466-5dda-4204-9315-22501e66bc09	2016-03-21 23:40:35.525122	ttt
+96354337-80cb-436b-9dbc-4a36c605fc7c	2016-03-22 16:15:08.397197	ttt
+46123693-bdcb-43b6-a2b2-b0e196bd52d4	2016-03-22 16:15:08.397197	ttt
+076ad435-f2af-43fa-a565-1d328288983b	2016-03-22 16:15:08.397197	ttt
+c4eebf9a-95c8-4c1f-8567-69e96e0772b4	2016-03-22 16:15:08.397197	ttt
 \.
 
 
@@ -678,7 +710,6 @@ a84be27e-6a9a-43b0-bdaf-56aae3e2ffb1	2016-03-21 23:38:51.260553	test_protected
 --
 
 COPY record_rule (uuid_record, record_id, rule_id) FROM stdin;
-2c5e6def-c98a-4d45-829e-4bb59504a1c5	443f66af-3ac5-4c18-9794-717d9d7d41c8	abfe8a4d-48f7-455d-7fd2-121401b8d4db
 \.
 
 
@@ -687,7 +718,6 @@ COPY record_rule (uuid_record, record_id, rule_id) FROM stdin;
 --
 
 COPY rules (uuid_record, rule_id, rule_desc) FROM stdin;
-48b81c4e-9cd2-44ea-9e83-c828fd7e1f84	abfe8a4d-48f7-455d-7fd2-121401b8d4db	Тест1
 \.
 
 
@@ -696,7 +726,6 @@ COPY rules (uuid_record, rule_id, rule_desc) FROM stdin;
 --
 
 COPY rules_data (uuid_record, rule_id, rule_user, rule_action, rule_group) FROM stdin;
-417b45e1-ffd8-4f1e-a260-996dadb7dbaa	abfe8a4d-48f7-455d-7fd2-121401b8d4db	admin	select	\N
 \.
 
 
@@ -705,10 +734,7 @@ COPY rules_data (uuid_record, rule_id, rule_user, rule_action, rule_group) FROM 
 --
 
 COPY tokens (user_id, token, exp_date) FROM stdin;
-admin	6fd97a9c-ddd8-4007-bceb-713cb0946bf8	2016-03-18 15:30:57.198354
-user1	af28b51d-657c-4849-a7d9-747e96af6747	2016-03-18 15:31:54.253701
-admin	a7e5b857-6e1c-4ad4-814b-efa6b6f39138	2016-03-18 15:48:45.145727
-user1	45dd38c9-f780-4435-94a4-bb76a1f45284	2016-03-18 15:49:54.95072
+admin	474ca043-2bc4-4758-8137-77c92fbcb921	2016-03-23 16:57:55.103933
 \.
 
 
@@ -717,8 +743,17 @@ user1	45dd38c9-f780-4435-94a4-bb76a1f45284	2016-03-18 15:49:54.95072
 --
 
 COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
-c6fb440b-3674-40a3-844d-2d0bbeae8395	admin	$2a$06$UlIPX8PiH4CRGVnFOq1VLOy5WeGYXQDu/Og1vmBVsF2y4L1p79zJ2		Администратор
-83d9f0da-89d2-411c-a4e5-aaa96b679d52	user1	$2a$06$dFrhh9o2GZgUOh5hxGTEKuCyn52Halx0pz4B6Kg1fuPhW.Q3YkN7a	Студент	Дмитрий
+8c7bc8ac-5460-4317-8a48-53fa9d7c2ee0	admin	$2a$06$ExFpgCAbAo/WPQPj3cCW8.K0LIxGXgeAcws44rY8Tur8taMzSP7bK		Администратор
+48780d19-a97e-472a-9007-97a2b72aab13	dima	$2a$06$XkOiyy/RBRRqJraVBdRD0uSWf.WqKLnZWTq7q5F.f2JJ8Jcvf.03C		Дмитрий
+\.
+
+
+--
+-- Data for Name: vcs_tables; Type: TABLE DATA; Schema: acs; Owner: postgres
+--
+
+COPY vcs_tables (table_name, schema_name) FROM stdin;
+ttt	public
 \.
 
 
@@ -728,11 +763,11 @@ SET search_path = public, pg_catalog;
 -- Data for Name: fruits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY fruits (name, cnt, uuid_record) FROM stdin;
-23231	3	432260b8-81bb-4312-a3c7-ad4d973ed534
-23231	3	b17893e8-d9a2-4435-ae8e-51fe93716bb7
-23231	3	8b243da6-fd12-40d8-92b7-477600abc654
-23231	3	4923a4b4-29bd-4249-85bd-cd1383e8ea7b
+COPY fruits (name, cnt) FROM stdin;
+23231	3
+23231	3
+23231	3
+23231	3
 \.
 
 
@@ -740,12 +775,12 @@ COPY fruits (name, cnt, uuid_record) FROM stdin;
 -- Data for Name: test_protected; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
-1	name1	s	120	\N	9c2f12e2-1d12-4e1f-b948-0feb3112a3da
-5	name5	v	124	\N	a84be27e-6a9a-43b0-bdaf-56aae3e2ffb1
-2	name2	s	150	\N	07755f9b-091b-4ed4-b612-e57f7c8386de
-4	name4	z	120	\N	6d681457-2e06-4cb0-8ea0-5fc8526cf2c0
-3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	3ab2a3b7-374a-458b-9090-8efa1109191d
+COPY test_protected (id, name_p, property, price, rule) FROM stdin;
+1	name1	s	120	\N
+5	name5	v	124	\N
+2	name2	s	150	\N
+4	name4	z	120	\N
+3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06
 \.
 
 
@@ -754,25 +789,11 @@ COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
 --
 
 COPY ttt (val, uuid_record) FROM stdin;
-100	e5216741-2c6b-46c7-b4e7-9e1921428c5e
-1	b3d5679a-97dd-4601-8b83-900c57960415
-220	e15ae88f-9572-4ee3-9876-9837899d8025
-128	0251c466-5dda-4204-9315-22501e66bc09
+100	96354337-80cb-436b-9dbc-4a36c605fc7c
+1	46123693-bdcb-43b6-a2b2-b0e196bd52d4
+220	076ad435-f2af-43fa-a565-1d328288983b
+128	c4eebf9a-95c8-4c1f-8567-69e96e0772b4
 \.
-
-
---
--- Name: t_acs_fruits; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER t_acs_fruits AFTER INSERT OR DELETE OR UPDATE ON fruits FOR EACH ROW EXECUTE PROCEDURE acs_tg_audit();
-
-
---
--- Name: t_acs_test_protected; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER t_acs_test_protected AFTER INSERT OR DELETE OR UPDATE ON test_protected FOR EACH ROW EXECUTE PROCEDURE acs_tg_audit();
 
 
 --
