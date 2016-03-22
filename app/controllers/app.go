@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"github.com/robfig/revel"
+	"os"
+	"crypto/md5"
+	"io"
 )
 
 type App struct {
@@ -163,4 +166,20 @@ func groupsList() (groups []GroupItem, err error) {
 		}
 	}
 	return groups, err
+}
+
+func ComputeMd5(filePath string) ([]byte, error) {
+	var result []byte
+	file, err := os.Open(filePath)
+	if err != nil {
+		return result, err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return result, err
+	}
+
+	return hash.Sum(result), nil
 }

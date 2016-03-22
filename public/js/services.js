@@ -75,7 +75,8 @@ accessSettingsServices.factory('Test', ['$resource',
     function($resource) {
         return {
             Auth: $resource('/auth', {}, { go: { method:'POST', isArray: false, params : {user: '@user', pass: '@pass'} }}),
-            VCSreset: $resource('/test/reset', {}, { go: { method:'POST', isArray: false }})
+            VCSreset: $resource('/test/reset', {}, { go: { method:'POST', isArray: false }}),
+            Compile: $resource('/test/compile', {}, { go: { method:'POST', isArray: false }})
         };
     }]);
 

@@ -54,7 +54,13 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
     };
 
     $scope.reset = function() {
-        Test.VCSreset.go(function(data) {
+        //Test.VCSreset.go(function(data) {
+        //    console.log(data);
+        //});
+    };
+
+    $scope.compile = function() {
+        Test.Compile.go(function(data) {
             console.log(data);
         });
     };

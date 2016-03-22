@@ -2,8 +2,7 @@
  RETURNS void AS
 $BODY$
 DECLARE
-tname text;
-ruuid text;
+
 BEGIN
 
 
