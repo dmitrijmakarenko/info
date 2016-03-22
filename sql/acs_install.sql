@@ -72,11 +72,18 @@ CREATE TABLE acs.changes_history
   change_db text,
   hash text
 );
+--record_changes
 CREATE TABLE acs.record_changes
 (
   record_uuid uuid NOT NULL,
   time_modified timestamp without time zone NOT NULL,
   table_name text NOT NULL
+);
+--list tables
+CREATE TABLE acs.vcs_tables
+(
+  table_name text NOT NULL,
+  schema_name text NOT NULL
 );
 
 END;

@@ -38,6 +38,7 @@ accessSettingsDirectives.directive('leftpanel', function () {
                 {text : "Группы", path: "groups"},
                 {text : "Права", path: "rules"},
                 {text : "База данных", path: "db"},
+                {text : "VCS", path: "vcs"},
                 {text : "Тест", path: "test"}
             ];
             $scope.go = function(val) {

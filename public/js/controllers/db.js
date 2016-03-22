@@ -39,6 +39,50 @@ accessSettings.controller('dbCntl', function ($scope, DataBase) {
     loadData();
 });
 
+accessSettings.controller('vcsCntl', function ($scope, VCS) {
+    var loadData = function() {
+        VCS.Tables.go(function(data) {
+            console.log("vcs", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error)
+            } else {
+                $scope.vcsTables = data.tablesVcs||[];
+                $scope.otherTables = [];
+                var allTables = data.tablesAll||[];
+                for (var  i = 0; i < allTables.length; i++) {
+                    var addedVcs = false;
+                    for (var  j = 0; j < $scope.vcsTables.length; j++) {
+                        if (allTables[i] == $scope.vcsTables[j]) addedVcs = true;
+                    }
+                    if (!addedVcs) $scope.otherTables.push(allTables[i]);
+                }
+            }
+        });
+    };
+
+    $scope.addToVcs = function(table) {
+        VCS.AddToVcs.go({table: table}, function(data) {
+            if (data.error) {
+                $scope.showErrorMsg(data.error)
+            } else {
+                loadData();
+            }
+        });
+    };
+
+    $scope.removeFromVcs = function(table) {
+        VCS.RemoveFromVcs.go({table: table}, function(data) {
+            if (data.error) {
+                $scope.showErrorMsg(data.error)
+            } else {
+                loadData();
+            }
+        });
+    };
+
+    loadData();
+});
+
 accessSettings.controller('testCntl', function ($scope, Data, Test) {
     var token;
     $scope.auth = function() {
@@ -54,14 +98,35 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
     };
 
     $scope.reset = function() {
-        //Test.VCSreset.go(function(data) {
-        //    console.log(data);
-        //});
+        /*Test.VCSreset.go(function(data) {
+            console.log("reset", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });*/
     };
 
     $scope.compile = function() {
         Test.Compile.go(function(data) {
-            console.log(data);
+            console.log("compile", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });
+    };
+
+    $scope.install = function() {
+        Test.Install.go(function(data) {
+            console.log("install", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
         });
     };
 

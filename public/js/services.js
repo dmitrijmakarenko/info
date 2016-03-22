@@ -76,7 +76,17 @@ accessSettingsServices.factory('Test', ['$resource',
         return {
             Auth: $resource('/auth', {}, { go: { method:'POST', isArray: false, params : {user: '@user', pass: '@pass'} }}),
             VCSreset: $resource('/test/reset', {}, { go: { method:'POST', isArray: false }}),
+            Install: $resource('/test/install', {}, { go: { method:'POST', isArray: false }}),
             Compile: $resource('/test/compile', {}, { go: { method:'POST', isArray: false }})
+        };
+    }]);
+
+accessSettingsServices.factory('VCS', ['$resource',
+    function($resource) {
+        return {
+            Tables: $resource('/vcs/tables', {}, { go: { method:'POST', isArray: false }}),
+            AddToVcs: $resource('/vcs/add', {}, { go: { method:'POST', isArray: false, params : {table: '@table'} }}),
+            RemoveFromVcs: $resource('/vcs/delete', {}, { go: { method:'POST', isArray: false, params : {table: '@table'} }})
         };
     }]);
 

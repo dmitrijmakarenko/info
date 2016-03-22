@@ -34,17 +34,43 @@ func (c TestCntl) Reset() revel.Result {
 	return c.RenderJson(ret)
 }
 
+func (c TestCntl) Install() revel.Result {
+	ret := make(map[string]string)
+	_, err := DB.Query("SELECT acs_install()")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	return c.RenderJson(ret)
+}
+
 func (c TestCntl) Compile() revel.Result {
 	ret := make(map[string]string)
-	revel.INFO.Println("[compile] start")
-
 	filepath := "gocode/src/info/dump/copy"
 
+	//get tables
+	var tables []string
+	rows, err := DB.Query("SELECT table_name FROM acs.vcs_tables")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	for rows.Next() {
+		var table string
+		err := rows.Scan(&table)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		} else {
+			tables = append(tables, table)
+		}
+	}
+
+	//create file
 	f, err := os.Create(filepath)
 	defer f.Close()
-	revel.INFO.Println("[compile] file created")
 
-	tables := []string{"ttt", "fruits"}
+	//add to file
 	for _, table := range tables {
 		_, err = f.WriteString(table + "\n")
 		rows, err := DB.Query("SELECT * FROM " + table)

@@ -1,0 +1,19 @@
+<div id="vcs-settings">
+    <div class="tables-list">
+        <div>Таблицы</div>
+        <div class="tables">
+            <div class="in-vcs">
+                <div class="item-title">in vcs</div>
+                <div class="item" ng-repeat="table in vcsTables" ng-click="removeFromVcs(table)">
+                    <div>{{table}}</div>
+                </div>
+            </div>
+            <div class="not-vcs">
+                <div class="item-title">not vcs</div>
+                <div class="item" ng-repeat="table in otherTables" ng-click="addToVcs(table)">
+                    <div>{{table}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -17,6 +17,7 @@ POST    /groups/:action                         GroupCntl.:action
 POST    /rules/:action                          RuleCntl.:action
 
 POST    /data/:action                           DataCntl.:action
+POST    /vcs/:action                            VcsCntl.:action
 
 POST    /test/:action                           TestCntl.:action
 

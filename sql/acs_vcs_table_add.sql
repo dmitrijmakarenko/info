@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION acs_vcs_add_table(text)
+﻿CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -17,6 +17,8 @@ FOR ruuid IN EXECUTE 'SELECT uuid_record FROM ' || $1
 EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
 AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
 EXECUTE PROCEDURE acs_tg_audit()';
+
+EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
 
 END;
 $BODY$

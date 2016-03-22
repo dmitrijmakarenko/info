@@ -10,7 +10,7 @@ FOR tname IN
 	FROM   information_schema.tables
 	WHERE  table_schema = 'public' AND table_type = 'BASE TABLE'
    LOOP
-	EXECUTE 'SELECT acs_vcs_add_table('|| quote_literal(tname) ||')';
+	EXECUTE 'SELECT acs_vcs_table_add('|| quote_literal(tname) ||')';
    END LOOP;
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
