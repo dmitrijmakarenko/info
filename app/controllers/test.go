@@ -114,10 +114,9 @@ func (c TestCntl) Compile() revel.Result {
 	}
 	s := hex.EncodeToString(b)
 
-	//add to history
-	_, err = DB.Exec("INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_generate_v4(), now(), 'compile', current_database(), $1)", s)
+	//call compile
+	_, err = DB.Query("SELECT acs_vcs_compile($1)", s)
 	if err != nil {
-		_ = os.Remove(filepath)
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}

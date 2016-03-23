@@ -72,6 +72,14 @@ CREATE TABLE acs.changes_history
   change_db text,
   hash text
 );
+--changes_fields
+CREATE TABLE acs.changes_fields
+(
+  db_name text NOT NULL,
+  record_uuid uuid NOT NULL,
+  change_uuid uuid NOT NULL,
+  table_name text NOT NULL
+);
 --record_changes
 CREATE TABLE acs.record_changes
 (
