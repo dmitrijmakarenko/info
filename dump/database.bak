@@ -177,21 +177,20 @@ CREATE TABLE IF NOT EXISTS acs.groups_struct (
 	level integer
 );
 --record_rule
-CREATE TABLE IF NOT EXISTS acs.record_rule (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
-	record_id uuid NOT NULL,
-	rule_id uuid NOT NULL
+CREATE TABLE IF NOT EXISTS acs.rule_record (
+	uuid_record uuid NOT NULL,
+	security_rule uuid NOT NULL
 );
 --rules
 CREATE TABLE IF NOT EXISTS acs.rules (
 	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
-	rule_id uuid NOT NULL,
+	security_rule uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
 CREATE TABLE IF NOT EXISTS acs.rules_data (
 	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
-	rule_id uuid NOT NULL,
+	security_rule uuid NOT NULL,
 	rule_user text,
 	rule_action text,
 	rule_group text
@@ -203,7 +202,7 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 	exp_date timestamp
 );
 --changes_history
-CREATE TABLE acs.changes_history
+CREATE TABLE IF NOT EXISTS acs.changes_history
 (
   change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
   change_date timestamp without time zone NOT NULL,
@@ -212,7 +211,7 @@ CREATE TABLE acs.changes_history
   hash text
 );
 --changes_fields
-CREATE TABLE acs.changes_fields
+CREATE TABLE IF NOT EXISTS acs.changes_fields
 (
   db_name text NOT NULL,
   record_uuid uuid NOT NULL,
@@ -220,14 +219,14 @@ CREATE TABLE acs.changes_fields
   table_name text NOT NULL
 );
 --record_changes
-CREATE TABLE acs.record_changes
+CREATE TABLE IF NOT EXISTS acs.record_changes
 (
   record_uuid uuid NOT NULL,
   time_modified timestamp without time zone NOT NULL,
   table_name text NOT NULL
 );
 --list tables
-CREATE TABLE acs.vcs_tables
+CREATE TABLE IF NOT EXISTS acs.vcs_tables
 (
   table_name text NOT NULL,
   schema_name text NOT NULL
@@ -268,6 +267,35 @@ $_$;
 
 
 ALTER FUNCTION public.acs_protect_table(text) OWNER TO postgres;
+
+--
+-- Name: acs_rec_protect(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_rec_protect(uuid, uuid, text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+cnt int;
+BEGIN
+--check rule
+SELECT COUNT(*) INTO cnt FROM acs.rules WHERE security_rule=$1;
+IF cnt = 0 THEN
+	RETURN;
+END IF;
+--check record
+EXECUTE 'SELECT COUNT(*) FROM '|| $3 ||' WHERE uuid_record='|| quote_literal($2) INTO cnt;
+IF cnt = 0 THEN
+	RETURN;
+END IF;
+
+INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
+
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_rec_protect(uuid, uuid, text) OWNER TO postgres;
 
 --
 -- Name: acs_table(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -317,6 +345,27 @@ $$;
 ALTER FUNCTION public.acs_tg_audit() OWNER TO postgres;
 
 --
+-- Name: acs_tg_event(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_tg_event() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+BEGIN
+
+IF tg_tag = 'CREATE TABLE' THEN
+	RAISE notice 'command %', tg_tag;
+END IF;
+
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_tg_event() OWNER TO postgres;
+
+--
 -- Name: acs_vcs_compile(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -326,7 +375,11 @@ CREATE FUNCTION acs_vcs_compile() RETURNS void
 DECLARE
 tname text;
 ruuid text;
+uuid_change uuid;
 cdate timestamp;
+r record;
+data text;
+hash text;
 BEGIN
 
 SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
@@ -335,42 +388,19 @@ IF cdate IS NULL THEN
 	RETURN;
 END IF;
 
+data = '';
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	--RAISE notice 'table %', tname;
-	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
+	data = data || tname;
+	FOR r IN EXECUTE 'SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP
-		--RAISE notice 'uuid record %', ruuid;
-		EXECUTE 'INSERT INTO acs.changes_fields(db_name,record_uuid,change_uuid,table_name) VALUES(current_database(), '|| quote_literal(ruuid) ||', uuid_generate_v4(), '|| quote_literal(tname) ||')';
+		data = data || array_to_string(array_agg(r),',','*');
 	END LOOP;
    END LOOP;
 
-END;
-$$;
-
-
-ALTER FUNCTION public.acs_vcs_compile() OWNER TO postgres;
-
---
--- Name: acs_vcs_compile(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION acs_vcs_compile(text) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-DECLARE
-tname text;
-ruuid text;
-uuid_change uuid;
-cdate timestamp;
-BEGIN
-
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
---RAISE notice 'date %', cdate;
-IF cdate IS NULL THEN
-	RETURN;
-END IF;
-
+--RAISE notice 'data %', data;
+hash = md5(data);
+--RAISE notice 'hash %', hash;
 uuid_change = uuid_generate_v4();
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
@@ -383,13 +413,13 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
-INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_change, now(), 'compile', current_database(), $1);
+INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_change, now(), 'compile', current_database(), hash);
 
 END;
-$_$;
+$$;
 
 
-ALTER FUNCTION public.acs_vcs_compile(text) OWNER TO postgres;
+ALTER FUNCTION public.acs_vcs_compile() OWNER TO postgres;
 
 --
 -- Name: acs_vcs_init(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -411,6 +441,9 @@ FOR tname IN
    END LOOP;
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
+
+CREATE EVENT TRIGGER acs_tg_event ON ddl_command_end
+   EXECUTE PROCEDURE acs_tg_event();
 
 END;
 $$;
@@ -560,17 +593,16 @@ CREATE TABLE record_changes (
 ALTER TABLE acs.record_changes OWNER TO postgres;
 
 --
--- Name: record_rule; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+-- Name: rule_record; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE record_rule (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    record_id uuid NOT NULL,
-    rule_id uuid NOT NULL
+CREATE TABLE rule_record (
+    uuid_record uuid NOT NULL,
+    security_rule uuid NOT NULL
 );
 
 
-ALTER TABLE acs.record_rule OWNER TO postgres;
+ALTER TABLE acs.rule_record OWNER TO postgres;
 
 --
 -- Name: rules; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
@@ -578,7 +610,7 @@ ALTER TABLE acs.record_rule OWNER TO postgres;
 
 CREATE TABLE rules (
     uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    rule_id uuid NOT NULL,
+    security_rule uuid NOT NULL,
     rule_desc text
 );
 
@@ -591,7 +623,7 @@ ALTER TABLE acs.rules OWNER TO postgres;
 
 CREATE TABLE rules_data (
     uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    rule_id uuid NOT NULL,
+    security_rule uuid NOT NULL,
     rule_user text,
     rule_action text,
     rule_group text
@@ -705,20 +737,6 @@ SET search_path = acs, pg_catalog;
 --
 
 COPY changes_fields (db_name, record_uuid, change_uuid, table_name) FROM stdin;
-infosystem	a9b28367-12f0-434d-a707-83d882cf6eea	4ec54616-8772-47bd-9b24-b6cc188612ce	ttt
-infosystem	105393f5-d2ae-470a-b105-952cf2a9c4d3	4ec54616-8772-47bd-9b24-b6cc188612ce	ttt
-infosystem	ceeb232b-ec3b-4f2e-b8ca-85df84e4b745	4ec54616-8772-47bd-9b24-b6cc188612ce	ttt
-infosystem	883201e4-2a2d-4dce-b2e0-b8c01ed500e7	4ec54616-8772-47bd-9b24-b6cc188612ce	ttt
-infosystem	4bf2e17e-af3b-4ada-b7a4-00720d39f3fa	4ec54616-8772-47bd-9b24-b6cc188612ce	fruits
-infosystem	d613a196-7dcf-47fb-beb6-be2cd63f0343	4ec54616-8772-47bd-9b24-b6cc188612ce	fruits
-infosystem	fc8896aa-6882-4164-a68f-9810f48d5822	4ec54616-8772-47bd-9b24-b6cc188612ce	fruits
-infosystem	498e3284-ec42-4501-b286-4263a9ab56e7	4ec54616-8772-47bd-9b24-b6cc188612ce	fruits
-infosystem	000e1923-e39b-46d2-aaa0-46be532d2ab4	4ec54616-8772-47bd-9b24-b6cc188612ce	test_protected
-infosystem	efde8bae-4850-4b81-8f44-eaa033855ca5	4ec54616-8772-47bd-9b24-b6cc188612ce	test_protected
-infosystem	815d89f5-d5cb-4ac4-abec-9d41ad953e83	4ec54616-8772-47bd-9b24-b6cc188612ce	test_protected
-infosystem	849c6c5c-2789-4fa4-9f21-8332135bd309	4ec54616-8772-47bd-9b24-b6cc188612ce	test_protected
-infosystem	d314824c-1b31-4e99-93bc-6ba4f78d20bf	4ec54616-8772-47bd-9b24-b6cc188612ce	test_protected
-infosystem	54a4af65-c075-4ba4-9187-6fc273dd74a3	1b36a7aa-266c-43c8-913f-afbf0d055c42	ttt
 \.
 
 
@@ -727,10 +745,6 @@ infosystem	54a4af65-c075-4ba4-9187-6fc273dd74a3	1b36a7aa-266c-43c8-913f-afbf0d05
 --
 
 COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FROM stdin;
-eb222186-3022-4a49-9348-bf05fe5681e8	2016-03-23 12:15:10.052015	init	infosystem	\N
-4ec54616-8772-47bd-9b24-b6cc188612ce	2016-03-23 12:16:12.814066	compile	infosystem	c24943720edefb9cf8142543bf385a15
-1b36a7aa-266c-43c8-913f-afbf0d055c42	2016-03-23 12:18:37.224516	compile	infosystem	ca2c243300ff23976d703bd076102830
-ed979b10-1aea-4aa1-be54-72c6e7c72900	2016-03-23 12:23:21.985039	compile	infosystem	ca2c243300ff23976d703bd076102830
 \.
 
 
@@ -739,6 +753,7 @@ ed979b10-1aea-4aa1-be54-72c6e7c72900	2016-03-23 12:23:21.985039	compile	infosyst
 --
 
 COPY group_user (uuid_record, group_id, user_id) FROM stdin;
+205e3170-dafe-411e-b1a9-a1413f4e852a	a32357af-dba2-4d72-4ac3-79ea26196c96	admin
 \.
 
 
@@ -747,7 +762,7 @@ COPY group_user (uuid_record, group_id, user_id) FROM stdin;
 --
 
 COPY groups (uuid_record, group_id, realname) FROM stdin;
-dca203c9-f968-407f-8bd7-353b2e25a91e	bf9e361f-16ab-485a-48bf-d2c7379c20dd	Группа 1
+313fe475-19b9-491b-9632-282b190a80f5	a32357af-dba2-4d72-4ac3-79ea26196c96	Группа1
 \.
 
 
@@ -764,28 +779,16 @@ COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
 --
 
 COPY record_changes (record_uuid, time_modified, table_name) FROM stdin;
-a9b28367-12f0-434d-a707-83d882cf6eea	2016-03-23 12:15:10.052015	ttt
-105393f5-d2ae-470a-b105-952cf2a9c4d3	2016-03-23 12:15:10.052015	ttt
-ceeb232b-ec3b-4f2e-b8ca-85df84e4b745	2016-03-23 12:15:10.052015	ttt
-883201e4-2a2d-4dce-b2e0-b8c01ed500e7	2016-03-23 12:15:10.052015	ttt
-4bf2e17e-af3b-4ada-b7a4-00720d39f3fa	2016-03-23 12:15:10.052015	fruits
-d613a196-7dcf-47fb-beb6-be2cd63f0343	2016-03-23 12:15:10.052015	fruits
-fc8896aa-6882-4164-a68f-9810f48d5822	2016-03-23 12:15:10.052015	fruits
-498e3284-ec42-4501-b286-4263a9ab56e7	2016-03-23 12:15:10.052015	fruits
-000e1923-e39b-46d2-aaa0-46be532d2ab4	2016-03-23 12:15:10.052015	test_protected
-efde8bae-4850-4b81-8f44-eaa033855ca5	2016-03-23 12:15:10.052015	test_protected
-815d89f5-d5cb-4ac4-abec-9d41ad953e83	2016-03-23 12:15:10.052015	test_protected
-849c6c5c-2789-4fa4-9f21-8332135bd309	2016-03-23 12:15:10.052015	test_protected
-d314824c-1b31-4e99-93bc-6ba4f78d20bf	2016-03-23 12:15:10.052015	test_protected
-54a4af65-c075-4ba4-9187-6fc273dd74a3	2016-03-23 12:18:34.014845	ttt
 \.
 
 
 --
--- Data for Name: record_rule; Type: TABLE DATA; Schema: acs; Owner: postgres
+-- Data for Name: rule_record; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY record_rule (uuid_record, record_id, rule_id) FROM stdin;
+COPY rule_record (uuid_record, security_rule) FROM stdin;
+ceeb232b-ec3b-4f2e-b8ca-85df84e4b745	c1900786-a548-4b74-55d4-ce79acd8fce1
+105393f5-d2ae-470a-b105-952cf2a9c4d3	c1900786-a548-4b74-55d4-ce79acd8fce1
 \.
 
 
@@ -793,7 +796,8 @@ COPY record_rule (uuid_record, record_id, rule_id) FROM stdin;
 -- Data for Name: rules; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules (uuid_record, rule_id, rule_desc) FROM stdin;
+COPY rules (uuid_record, security_rule, rule_desc) FROM stdin;
+6fdc6b29-5733-4773-8b76-a7205a40e3e9	c1900786-a548-4b74-55d4-ce79acd8fce1	Тест
 \.
 
 
@@ -801,7 +805,8 @@ COPY rules (uuid_record, rule_id, rule_desc) FROM stdin;
 -- Data for Name: rules_data; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules_data (uuid_record, rule_id, rule_user, rule_action, rule_group) FROM stdin;
+COPY rules_data (uuid_record, security_rule, rule_user, rule_action, rule_group) FROM stdin;
+c45e338d-88b9-44c7-82f8-3756ead3e2d9	c1900786-a548-4b74-55d4-ce79acd8fce1	admin	select	\N
 \.
 
 
@@ -810,7 +815,11 @@ COPY rules_data (uuid_record, rule_id, rule_user, rule_action, rule_group) FROM 
 --
 
 COPY tokens (user_id, token, exp_date) FROM stdin;
-admin	474ca043-2bc4-4758-8137-77c92fbcb921	2016-03-23 16:57:55.103933
+admin	22a4bf68-427d-4fd4-9300-d13782194d95	2016-03-25 16:25:30.963938
+admin	1dc7cb40-f0e0-453a-a0f4-4448e3026d52	2016-03-25 16:25:56.563638
+admin	9f845f28-1708-4a35-9b20-4d1d377ad8de	2016-03-25 18:05:37.634663
+admin	c95fc666-b01a-4eec-928b-719e7a213864	2016-03-25 18:07:44.347705
+admin	df91683c-9f7d-404c-855f-943dfeb366d8	2016-03-25 18:08:05.384191
 \.
 
 
@@ -819,8 +828,7 @@ admin	474ca043-2bc4-4758-8137-77c92fbcb921	2016-03-23 16:57:55.103933
 --
 
 COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
-8c7bc8ac-5460-4317-8a48-53fa9d7c2ee0	admin	$2a$06$ExFpgCAbAo/WPQPj3cCW8.K0LIxGXgeAcws44rY8Tur8taMzSP7bK		Администратор
-48780d19-a97e-472a-9007-97a2b72aab13	dima	$2a$06$XkOiyy/RBRRqJraVBdRD0uSWf.WqKLnZWTq7q5F.f2JJ8Jcvf.03C		Дмитрий
+85bcc0a9-d474-4ff8-b4b5-4d376d2317ba	admin	$2a$06$QMnOhgv.upASLQ9TGU7NUupR2KRoW/qBZ2sFpkXz1UTKZ/rKNlZK2		Администратор
 \.
 
 
@@ -829,9 +837,6 @@ COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
 --
 
 COPY vcs_tables (table_name, schema_name) FROM stdin;
-ttt	public
-fruits	public
-test_protected	public
 \.
 
 
@@ -894,6 +899,14 @@ CREATE TRIGGER t_acs_test_protected AFTER INSERT OR DELETE OR UPDATE ON test_pro
 --
 
 CREATE TRIGGER t_acs_ttt AFTER INSERT OR DELETE OR UPDATE ON ttt FOR EACH ROW EXECUTE PROCEDURE acs_tg_audit();
+
+
+--
+-- Name: acs_tg_event; Type: EVENT TRIGGER; Schema: -; Owner: postgres
+--
+
+CREATE EVENT TRIGGER acs_tg_event ON ddl_command_end
+   EXECUTE PROCEDURE public.acs_tg_event();
 
 
 --
