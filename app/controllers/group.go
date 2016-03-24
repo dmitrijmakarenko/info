@@ -101,7 +101,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	}
 
 	var groupRules []RuleGroupItem
-	rows, err := DB.Query("SELECT DISTINCT rule_id, rule_action FROM "+TABLE_RULES_DATA+" WHERE rule_group=$1", settings.Id)
+	rows, err := DB.Query("SELECT DISTINCT security_rule, rule_action FROM "+TABLE_RULES_DATA+" WHERE rule_group=$1", settings.Id)
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -129,7 +129,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 	for _, member := range settings.Members {
 		_, err = DB.Exec("INSERT INTO "+TABLE_GROUP_USER+"(group_id, user_id) VALUES ($1, $2)", settings.Id, member.Id)
 		for _, rule := range groupRules {
-			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(rule_id, rule_user, rule_action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
+			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(security_rule, rule_user, rule_action, rule_group) VALUES ($1, $2, $3, $4)", rule.Id, member.Id, rule.Operation, settings.Id)
 		}
 	}
 	if err != nil {
@@ -151,7 +151,7 @@ func (c GroupCntl) Update(id string, data string) revel.Result {
 			return c.RenderJson(ret)
 		}
 		//rules
-		rows, err = DB.Query("SELECT DISTINCT rule_id FROM "+TABLE_RULES_DATA+" WHERE rule_group=$1", settings.Id)
+		rows, err = DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_group=$1", settings.Id)
 		if err != nil {
 			ret["error"] = err.Error()
 			return c.RenderJson(ret)

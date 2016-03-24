@@ -36,7 +36,7 @@ accessSettingsDirectives.directive('leftpanel', function () {
                 {text : "Таблицы", path: "tables"},
                 {text : "Пользователи", path: "accounts"},
                 {text : "Группы", path: "groups"},
-                {text : "Права", path: "rules"},
+                {text : "Метки", path: "rules"},
                 {text : "База данных", path: "db"},
                 {text : "VCS", path: "vcs"},
                 {text : "Тест", path: "test"}

@@ -2,10 +2,6 @@ package controllers
 
 import (
 	"github.com/robfig/revel"
-	"encoding/hex"
-	"database/sql"
-	"os"
-	"strings"
 )
 
 type TestCntl struct {

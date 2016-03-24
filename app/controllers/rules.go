@@ -46,7 +46,7 @@ type RuleSettings struct {
 
 func (c RuleCntl) List() revel.Result {
 	var ret RulesList
-	rows, err := DB.Query("SELECT rule_id, rule_desc FROM "+TABLE_RULES+" ORDER BY rule_id")
+	rows, err := DB.Query("SELECT security_rule, rule_desc FROM "+TABLE_RULES+" ORDER BY security_rule")
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -71,7 +71,7 @@ func (c RuleCntl) List() revel.Result {
 func (c RuleCntl) Get(id string) revel.Result {
 	var ret RuleSettings
 
-	rows, err := DB.Query("SELECT rule_desc FROM "+TABLE_RULES+" WHERE rule_id=$1", id)
+	rows, err := DB.Query("SELECT rule_desc FROM "+TABLE_RULES+" WHERE security_rule=$1", id)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -87,7 +87,7 @@ func (c RuleCntl) Get(id string) revel.Result {
 	}
 
 	//get groups
-	rows, err = DB.Query("SELECT DISTINCT COALESCE(rule_group, '') as rule_group, rule_action FROM "+TABLE_RULES_DATA+" WHERE rule_id=$1 AND rule_group IS NOT NULL", id)
+	rows, err = DB.Query("SELECT DISTINCT COALESCE(rule_group, '') as rule_group, rule_action FROM "+TABLE_RULES_DATA+" WHERE security_rule=$1 AND rule_group IS NOT NULL", id)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -109,7 +109,7 @@ func (c RuleCntl) Get(id string) revel.Result {
 	}
 
 	//get users
-	rows, err = DB.Query("SELECT rule_user, rule_action FROM "+TABLE_RULES_DATA+" WHERE rule_id=$1 AND rule_group IS NULL", id)
+	rows, err = DB.Query("SELECT rule_user, rule_action FROM "+TABLE_RULES_DATA+" WHERE security_rule=$1 AND rule_group IS NULL", id)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -162,11 +162,11 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 	if id == "!new" {
 		uuid, _ := uuid.NewV4()
 		settings.Id = uuid.String()
-		_, err = DB.Exec("INSERT INTO "+TABLE_RULES+"(rule_id, rule_desc) VALUES ($1, $2)", settings.Id, settings.Desc)
+		_, err = DB.Exec("INSERT INTO "+TABLE_RULES+"(security_rule, rule_desc) VALUES ($1, $2)", settings.Id, settings.Desc)
 	} else {
 		settings.Id = id
-		_, err = DB.Exec("UPDATE "+TABLE_RULES+" SET rule_desc=$2 WHERE rule_id=$1", settings.Id, settings.Desc)
-		_, err = DB.Exec("DELETE FROM "+TABLE_RULES_DATA+" WHERE rule_id=$1", settings.Id)
+		_, err = DB.Exec("UPDATE "+TABLE_RULES+" SET rule_desc=$2 WHERE security_rule=$1", settings.Id, settings.Desc)
+		_, err = DB.Exec("DELETE FROM "+TABLE_RULES_DATA+" WHERE security_rule=$1", settings.Id)
 	}
 	if err != nil {
 		ret["error"] = err.Error();
@@ -178,7 +178,7 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 
 	for _, action := range settings.Actions {
 		if action.IsUser {
-			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(rule_id, rule_user, rule_action) VALUES ($1, $2, $3)", settings.Id, action.Object, action.Operation)
+			_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(security_rule, rule_user, rule_action) VALUES ($1, $2, $3)", settings.Id, action.Object, action.Operation)
 		} else {
 			users, err := getUsersByGroup(action.Object)
 			if err != nil {
@@ -186,7 +186,7 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 				return c.RenderJson(ret)
 			}
 			for _, user := range users {
-				_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(rule_id, rule_user, rule_action, rule_group) VALUES ($1, $2, $3, $4)", settings.Id, user, action.Operation, action.Object)
+				_, err = DB.Exec("INSERT INTO "+TABLE_RULES_DATA+"(security_rule, rule_user, rule_action, rule_group) VALUES ($1, $2, $3, $4)", settings.Id, user, action.Operation, action.Object)
 			}
 		}
 	}
@@ -199,7 +199,7 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 
 func (c RuleCntl) Delete(id string) revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Exec("DELETE FROM "+TABLE_RULES+" WHERE rule_id=$1", id)
+	_, err := DB.Exec("DELETE FROM "+TABLE_RULES+" WHERE security_rule=$1", id)
 	if err != nil {
 		revel.ERROR.Println("[delete rule]", err)
 		ret["error"] = err.Error()

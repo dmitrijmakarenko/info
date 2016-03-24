@@ -49,7 +49,7 @@ func (c DataCntl) Get(params string) revel.Result {
 	}
 
 	//get rights
-	rows, err := DB.Query("SELECT DISTINCT rule_id FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", user)
+	rows, err := DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", user)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -85,10 +85,10 @@ func (c DataCntl) Get(params string) revel.Result {
 	//sql query
 	var stmt *sql.Stmt
 	if (hasRights) {
-		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.record_rule AS rules ON ("+p.Table+".uuid_record = rules.record_id) WHERE rule_id IS NULL OR rule_id IN " + rulesList)
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL OR security_rule IN " + rulesList)
 		//stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL OR rule IN " + rulesList)
 	} else {
-		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.record_rule AS rules ON ("+p.Table+".uuid_record = rules.record_id) WHERE rule_id IS NULL")
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL")
 		//stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
 	}
 	if err != nil {
