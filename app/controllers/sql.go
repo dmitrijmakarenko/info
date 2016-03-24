@@ -14,6 +14,7 @@ var DB *sql.DB
 type DataEntity struct {
 	Id string `json:"id"`
 	Columns []string `json:"columns"`
+	Uuid []string `json:"uuid"`
 	Rows [][]string `json:"rows"`
 }
 
@@ -98,6 +99,12 @@ func entityGet(table string) (DataEntity, error) {
 		return ret, err
 	}
 	columnNames, err := rows.Columns()
+	uuidIdx := -1
+	for i, column := range columnNames {
+		if column == "uuid_record" {
+			uuidIdx = i
+		}
+	}
 	ret.Columns = listColumns(table)
 	var retRows [][]string
 	for rows.Next() {
@@ -112,6 +119,9 @@ func entityGet(table string) (DataEntity, error) {
 		for i := 0; i < len(columnNames); i++ {
 			if rb, ok := columnPointers[i].(*sql.RawBytes); ok {
 				retRow = append(retRow, string(*rb))
+				if uuidIdx > -1 && uuidIdx == i {
+					ret.Uuid = append(ret.Uuid, string(*rb))
+				}
 			} else {
 				return ret, errors.New("erorr get row")
 			}

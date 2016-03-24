@@ -21,7 +21,7 @@ accessSettings.config(['$routeProvider',
                 templateUrl: 'public/templates/tables.html',
                 controller: 'tablesCntl'
             }).
-            when('/table/:tableId', {
+            when('/tables/:tableId', {
                 templateUrl: 'public/templates/table.html',
                 controller: 'tableCntl'
             }).

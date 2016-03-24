@@ -44,6 +44,12 @@ type RuleSettings struct {
 	Error  string `json:"error"`
 }
 
+type ProtectRec struct {
+	UuidRecord string `json:"uuidRecord"`
+	UuidRule string `json:"uuidRule"`
+	Table string `json:"table"`
+}
+
 func (c RuleCntl) List() revel.Result {
 	var ret RulesList
 	rows, err := DB.Query("SELECT security_rule, rule_desc FROM "+TABLE_RULES+" ORDER BY security_rule")
@@ -193,6 +199,23 @@ func (c RuleCntl) Update(id string, data string) revel.Result {
 
 	if err != nil {
 		ret["error"] = err.Error();
+	}
+	return c.RenderJson(ret)
+}
+
+func (c RuleCntl) ProtectRec(data string) revel.Result {
+	ret := make(map[string]string)
+	var settings ProtectRec
+	err := json.Unmarshal([]byte(data), &settings)
+	if err != nil {
+		ret["error"] = "settings error format";
+		return c.RenderJson(ret)
+	}
+
+	_, err = DB.Query("SELECT acs_rec_protect($1, $2, $3)", settings.UuidRule, settings.UuidRecord, settings.Table)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
 	}
 	return c.RenderJson(ret)
 }

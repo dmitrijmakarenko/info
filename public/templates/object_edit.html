@@ -14,20 +14,6 @@
     </div>
 </div>
 
-<script type="text/ng-template" id="property-control">
-    <div class="property-wrapper">
-        <div class="title">Свойства</div>
-        <div ng-repeat="property in properties" class="prop-item">
-            <div class="id">{{property.id}}</div>
-            <div class="type">{{property.type}}</div>
-            <div class="prop-desc">{{property.desc}}</div>
-            <div ng-click="edit(property.id)" class="edit link">Редактировать</div>
-            <div ng-click="remove(property.id)" class="link remove">Удалить</div>
-        </div>
-        <div ng-click="addNew()" class="link">Добавить</div>
-    </div>
-</script>
-
 <script type="text/ng-template" id="edit-prop-dialog">
     <div class="wrap">
         <div class="row">

@@ -67,6 +67,7 @@ accessSettingsServices.factory('Rules', ['$resource',
             Get: $resource('/rules/get', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }}),
             Data: $resource('/rules/data', {}, { go: { method:'POST', isArray: false }}),
             Update: $resource('/rules/update', {}, { go: { method:'POST', isArray: false, params : {id: '@id', data: '@settings'} }}),
+            ProtectRecord: $resource('/rules/protectrec', {}, { go: { method:'POST', isArray: false, params : {data: '@settings'} }}),
             Delete: $resource('/rules/delete', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);

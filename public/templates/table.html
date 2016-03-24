@@ -1,16 +1,26 @@
-<div class="object-item">
+<div class="table-data">
     <div class="content-wrap">
-        <div class="object-name">{{entity.name}}</div>
-        <div class="object-id">{{entity.id}}</div>
+        <div class="table-name">{{entity.id}}</div>
         <div class="table-wrap">
             <table>
                 <tr>
                     <th ng-repeat="column in entity.columns">{{column}}</th>
                 </tr>
-                <tr ng-repeat="row in entity.rows track by $index">
+                <tr class="row-data" ng-repeat="row in entity.rows track by $index" ng-click="protectRec($index)">
                     <td ng-repeat="dataRow in row track by $index">{{dataRow}}</td>
                 </tr>
             </table>
         </div>
     </div>
 </div>
+
+<script type="text/ng-template" id="protectRecDlg">
+    <div class="protect-rec-dlg">
+        <div class="txt">Метки безопасности:</div>
+        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="ruleSelected"></dropdown></div>
+        <div class="btn-bar">
+            <div button func="protect" text="Применить"></div>
+            <div class="link" ng-click="closeThisDialog()">Отмена</div>
+        </div>
+    </div>
+</script>
