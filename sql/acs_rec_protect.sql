@@ -18,7 +18,7 @@ IF cnt = 0 THEN
 	RETURN;
 END IF;
 
-INSERT INTO acs.record_rule(uuid_record, security_rule) VALUES ($2, $1);
+INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
 
 END;
 $BODY$

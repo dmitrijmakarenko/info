@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS acs.groups_struct (
 	level integer
 );
 --record_rule
-CREATE TABLE IF NOT EXISTS acs.record_rule (
+CREATE TABLE IF NOT EXISTS acs.rule_record (
 	uuid_record uuid NOT NULL,
 	security_rule uuid NOT NULL
 );

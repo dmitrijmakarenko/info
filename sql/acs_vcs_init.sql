@@ -15,6 +15,9 @@ FOR tname IN
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
 
+CREATE EVENT TRIGGER acs_tg_event ON ddl_command_end
+   EXECUTE PROCEDURE acs_tg_event();
+
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
