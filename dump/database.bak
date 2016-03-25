@@ -113,6 +113,85 @@ $_$;
 ALTER FUNCTION public.acs_check_user(text, text) OWNER TO postgres;
 
 --
+-- Name: acs_copy_from_file(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_copy_from_file() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+json_data json;
+item json;
+r record;
+table_name text;
+BEGIN
+
+DROP TABLE IF EXISTS acs.transfer_data_t;
+
+CREATE TABLE acs.transfer_data_t (
+  id serial primary key,
+  tname text NOT NULL,
+  data json
+);
+
+COPY acs.transfer_data_t FROM '/tmp/transfer_data.copy';
+
+FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
+   LOOP
+	--RAISE notice 'tname %', table_name;
+	FOR item IN SELECT * FROM json_array_elements(json_data)
+	LOOP
+		RAISE NOTICE 'item %', item;
+		EXECUTE 'INSERT INTO '|| table_name ||' SELECT * FROM json_to_record('|| quote_literal(item) ||')';
+	END LOOP;
+   END LOOP;
+
+--DROP TABLE IF EXISTS acs.transfer_data;
+
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_copy_from_file() OWNER TO postgres;
+
+--
+-- Name: acs_copy_to_file(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_copy_to_file() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+json_data json;
+tname text;
+BEGIN
+
+DROP TABLE IF EXISTS acs.transfer_data;
+
+CREATE TABLE acs.transfer_data (
+  id serial primary key,
+  tname text NOT NULL,
+  data json
+);
+
+FOR tname IN SELECT table_name FROM acs.vcs_tables
+   LOOP
+	EXECUTE 'SELECT json_agg(t) FROM (SELECT * FROM '|| tname ||') t' INTO json_data;
+	INSERT INTO acs.transfer_data(tname, data) VALUES(tname,json_data);
+	--RAISE notice 'json data %', json_data;
+   END LOOP;
+
+COPY acs.transfer_data TO '/tmp/transfer_data.copy';
+
+--DROP TABLE IF EXISTS acs.transfer_data;
+
+END;
+$$;
+
+
+ALTER FUNCTION public.acs_copy_to_file() OWNER TO postgres;
+
+--
 -- Name: acs_get_user(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -646,6 +725,74 @@ CREATE TABLE tokens (
 ALTER TABLE acs.tokens OWNER TO postgres;
 
 --
+-- Name: transfer_data; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE transfer_data (
+    id integer NOT NULL,
+    tname text NOT NULL,
+    data json
+);
+
+
+ALTER TABLE acs.transfer_data OWNER TO postgres;
+
+--
+-- Name: transfer_data_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
+--
+
+CREATE SEQUENCE transfer_data_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE acs.transfer_data_id_seq OWNER TO postgres;
+
+--
+-- Name: transfer_data_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
+--
+
+ALTER SEQUENCE transfer_data_id_seq OWNED BY transfer_data.id;
+
+
+--
+-- Name: transfer_data_t; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE transfer_data_t (
+    id integer NOT NULL,
+    tname text NOT NULL,
+    data json
+);
+
+
+ALTER TABLE acs.transfer_data_t OWNER TO postgres;
+
+--
+-- Name: transfer_data_t_id_seq; Type: SEQUENCE; Schema: acs; Owner: postgres
+--
+
+CREATE SEQUENCE transfer_data_t_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE acs.transfer_data_t_id_seq OWNER TO postgres;
+
+--
+-- Name: transfer_data_t_id_seq; Type: SEQUENCE OWNED BY; Schema: acs; Owner: postgres
+--
+
+ALTER SEQUENCE transfer_data_t_id_seq OWNED BY transfer_data_t.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
 --
 
@@ -733,6 +880,20 @@ ALTER TABLE public.ttt OWNER TO postgres;
 SET search_path = acs, pg_catalog;
 
 --
+-- Name: id; Type: DEFAULT; Schema: acs; Owner: postgres
+--
+
+ALTER TABLE ONLY transfer_data ALTER COLUMN id SET DEFAULT nextval('transfer_data_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: acs; Owner: postgres
+--
+
+ALTER TABLE ONLY transfer_data_t ALTER COLUMN id SET DEFAULT nextval('transfer_data_t_id_seq'::regclass);
+
+
+--
 -- Data for Name: changes_fields; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
@@ -779,6 +940,20 @@ COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
 --
 
 COPY record_changes (record_uuid, time_modified, table_name) FROM stdin;
+30c249aa-d9e6-4bbc-b5d1-c79a4c31a732	2016-03-25 11:10:28.600568	ttt
+4367a1cb-b5e9-4f17-bdde-a92622a19a06	2016-03-25 11:10:28.600568	ttt
+ecbc54be-341b-4094-a390-d1c05e0ec91b	2016-03-25 11:10:28.600568	ttt
+dd71d886-eece-40fd-bd84-d2c40d6a66a6	2016-03-25 11:10:28.600568	ttt
+847e9579-56a5-45e5-a6a4-cc5f53b6708d	2016-03-25 11:10:28.600568	ttt
+9686c2f8-20a3-4473-99f5-fa07a895b5cc	2016-03-25 11:10:29.343347	fruits
+4a1d2619-80ef-4515-8ddb-a2c05e277d23	2016-03-25 11:10:29.343347	fruits
+55245439-770e-4e2c-b0f4-f41a5b8c1831	2016-03-25 11:10:29.343347	fruits
+84e5d030-a165-4254-a27e-0e42ac31df83	2016-03-25 11:10:29.343347	fruits
+9feb73a9-8c37-4bdb-80dc-040a1b3dcac4	2016-03-25 11:10:29.863344	test_protected
+047242b7-9162-43d4-9ec6-597a06ea8f65	2016-03-25 11:10:29.863344	test_protected
+0ff5f58c-3943-426b-9f62-bf2b5a93caec	2016-03-25 11:10:29.863344	test_protected
+582c8147-bc09-4579-bff5-731b0207e073	2016-03-25 11:10:29.863344	test_protected
+c5efe97e-8c44-4c18-ad1a-605db0b8879c	2016-03-25 11:10:29.863344	test_protected
 \.
 
 
@@ -824,6 +999,42 @@ admin	df91683c-9f7d-404c-855f-943dfeb366d8	2016-03-25 18:08:05.384191
 
 
 --
+-- Data for Name: transfer_data; Type: TABLE DATA; Schema: acs; Owner: postgres
+--
+
+COPY transfer_data (id, tname, data) FROM stdin;
+1	ttt	[{"val":100,"uuid_record":"30c249aa-d9e6-4bbc-b5d1-c79a4c31a732"}, \n {"val":1,"uuid_record":"4367a1cb-b5e9-4f17-bdde-a92622a19a06"}, \n {"val":220,"uuid_record":"ecbc54be-341b-4094-a390-d1c05e0ec91b"}, \n {"val":128,"uuid_record":"dd71d886-eece-40fd-bd84-d2c40d6a66a6"}, \n {"val":135,"uuid_record":"847e9579-56a5-45e5-a6a4-cc5f53b6708d"}]
+2	fruits	[{"name":"23231","cnt":3,"uuid_record":"9686c2f8-20a3-4473-99f5-fa07a895b5cc"}, \n {"name":"23231","cnt":3,"uuid_record":"4a1d2619-80ef-4515-8ddb-a2c05e277d23"}, \n {"name":"23231","cnt":3,"uuid_record":"55245439-770e-4e2c-b0f4-f41a5b8c1831"}, \n {"name":"23231","cnt":3,"uuid_record":"84e5d030-a165-4254-a27e-0e42ac31df83"}]
+3	test_protected	[{"id":"1","name_p":"name1","property":"s","price":120,"rule":null,"uuid_record":"9feb73a9-8c37-4bdb-80dc-040a1b3dcac4"}, \n {"id":"5","name_p":"name5","property":"v","price":124,"rule":null,"uuid_record":"047242b7-9162-43d4-9ec6-597a06ea8f65"}, \n {"id":"2","name_p":"name2","property":"s","price":150,"rule":null,"uuid_record":"0ff5f58c-3943-426b-9f62-bf2b5a93caec"}, \n {"id":"4","name_p":"name4","property":"z","price":120,"rule":null,"uuid_record":"582c8147-bc09-4579-bff5-731b0207e073"}, \n {"id":"3","name_p":"name3","property":"q","price":150,"rule":"937dd1f3-70ea-479e-7b87-4afd1b380f06","uuid_record":"c5efe97e-8c44-4c18-ad1a-605db0b8879c"}]
+\.
+
+
+--
+-- Name: transfer_data_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
+--
+
+SELECT pg_catalog.setval('transfer_data_id_seq', 3, true);
+
+
+--
+-- Data for Name: transfer_data_t; Type: TABLE DATA; Schema: acs; Owner: postgres
+--
+
+COPY transfer_data_t (id, tname, data) FROM stdin;
+1	ttt	[{"val":100,"uuid_record":"30c249aa-d9e6-4bbc-b5d1-c79a4c31a732"}, \n {"val":1,"uuid_record":"4367a1cb-b5e9-4f17-bdde-a92622a19a06"}, \n {"val":220,"uuid_record":"ecbc54be-341b-4094-a390-d1c05e0ec91b"}, \n {"val":128,"uuid_record":"dd71d886-eece-40fd-bd84-d2c40d6a66a6"}, \n {"val":135,"uuid_record":"847e9579-56a5-45e5-a6a4-cc5f53b6708d"}]
+2	fruits	[{"name":"23231","cnt":3,"uuid_record":"9686c2f8-20a3-4473-99f5-fa07a895b5cc"}, \n {"name":"23231","cnt":3,"uuid_record":"4a1d2619-80ef-4515-8ddb-a2c05e277d23"}, \n {"name":"23231","cnt":3,"uuid_record":"55245439-770e-4e2c-b0f4-f41a5b8c1831"}, \n {"name":"23231","cnt":3,"uuid_record":"84e5d030-a165-4254-a27e-0e42ac31df83"}]
+3	test_protected	[{"id":"1","name_p":"name1","property":"s","price":120,"rule":null,"uuid_record":"9feb73a9-8c37-4bdb-80dc-040a1b3dcac4"}, \n {"id":"5","name_p":"name5","property":"v","price":124,"rule":null,"uuid_record":"047242b7-9162-43d4-9ec6-597a06ea8f65"}, \n {"id":"2","name_p":"name2","property":"s","price":150,"rule":null,"uuid_record":"0ff5f58c-3943-426b-9f62-bf2b5a93caec"}, \n {"id":"4","name_p":"name4","property":"z","price":120,"rule":null,"uuid_record":"582c8147-bc09-4579-bff5-731b0207e073"}, \n {"id":"3","name_p":"name3","property":"q","price":150,"rule":"937dd1f3-70ea-479e-7b87-4afd1b380f06","uuid_record":"c5efe97e-8c44-4c18-ad1a-605db0b8879c"}]
+\.
+
+
+--
+-- Name: transfer_data_t_id_seq; Type: SEQUENCE SET; Schema: acs; Owner: postgres
+--
+
+SELECT pg_catalog.setval('transfer_data_t_id_seq', 1, false);
+
+
+--
 -- Data for Name: users; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
@@ -837,6 +1048,9 @@ COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
 --
 
 COPY vcs_tables (table_name, schema_name) FROM stdin;
+ttt	public
+fruits	public
+test_protected	public
 \.
 
 
@@ -847,10 +1061,10 @@ SET search_path = public, pg_catalog;
 --
 
 COPY fruits (name, cnt, uuid_record) FROM stdin;
-23231	3	4bf2e17e-af3b-4ada-b7a4-00720d39f3fa
-23231	3	d613a196-7dcf-47fb-beb6-be2cd63f0343
-23231	3	fc8896aa-6882-4164-a68f-9810f48d5822
-23231	3	498e3284-ec42-4501-b286-4263a9ab56e7
+23231	3	9686c2f8-20a3-4473-99f5-fa07a895b5cc
+23231	3	4a1d2619-80ef-4515-8ddb-a2c05e277d23
+23231	3	55245439-770e-4e2c-b0f4-f41a5b8c1831
+23231	3	84e5d030-a165-4254-a27e-0e42ac31df83
 \.
 
 
@@ -859,11 +1073,11 @@ COPY fruits (name, cnt, uuid_record) FROM stdin;
 --
 
 COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
-1	name1	s	120	\N	000e1923-e39b-46d2-aaa0-46be532d2ab4
-5	name5	v	124	\N	efde8bae-4850-4b81-8f44-eaa033855ca5
-2	name2	s	150	\N	815d89f5-d5cb-4ac4-abec-9d41ad953e83
-4	name4	z	120	\N	849c6c5c-2789-4fa4-9f21-8332135bd309
-3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	d314824c-1b31-4e99-93bc-6ba4f78d20bf
+1	name1	s	120	\N	9feb73a9-8c37-4bdb-80dc-040a1b3dcac4
+5	name5	v	124	\N	047242b7-9162-43d4-9ec6-597a06ea8f65
+2	name2	s	150	\N	0ff5f58c-3943-426b-9f62-bf2b5a93caec
+4	name4	z	120	\N	582c8147-bc09-4579-bff5-731b0207e073
+3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	c5efe97e-8c44-4c18-ad1a-605db0b8879c
 \.
 
 
@@ -872,13 +1086,33 @@ COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
 --
 
 COPY ttt (val, uuid_record) FROM stdin;
-100	a9b28367-12f0-434d-a707-83d882cf6eea
-1	105393f5-d2ae-470a-b105-952cf2a9c4d3
-220	ceeb232b-ec3b-4f2e-b8ca-85df84e4b745
-128	883201e4-2a2d-4dce-b2e0-b8c01ed500e7
-135	54a4af65-c075-4ba4-9187-6fc273dd74a3
+100	30c249aa-d9e6-4bbc-b5d1-c79a4c31a732
+1	4367a1cb-b5e9-4f17-bdde-a92622a19a06
+220	ecbc54be-341b-4094-a390-d1c05e0ec91b
+128	dd71d886-eece-40fd-bd84-d2c40d6a66a6
+135	847e9579-56a5-45e5-a6a4-cc5f53b6708d
 \.
 
+
+SET search_path = acs, pg_catalog;
+
+--
+-- Name: transfer_data_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY transfer_data
+    ADD CONSTRAINT transfer_data_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: transfer_data_t_pkey; Type: CONSTRAINT; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY transfer_data_t
+    ADD CONSTRAINT transfer_data_t_pkey PRIMARY KEY (id);
+
+
+SET search_path = public, pg_catalog;
 
 --
 -- Name: t_acs_fruits; Type: TRIGGER; Schema: public; Owner: postgres
