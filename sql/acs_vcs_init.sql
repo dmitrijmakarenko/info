@@ -21,4 +21,4 @@ CREATE EVENT TRIGGER acs_tg_event ON ddl_command_end
 
 END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE
+  LANGUAGE plpgsql VOLATILE;

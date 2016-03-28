@@ -22,4 +22,4 @@ EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_li
 
 END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE
+  LANGUAGE plpgsql VOLATILE;

@@ -98,14 +98,25 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
     };
 
     $scope.reset = function() {
-        /*Test.VCSreset.go(function(data) {
-            console.log("reset", data);
+        Test.Reset.go(function(data) {
+            //console.log("reset", data);
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
                 $scope.showSuccessMsg("Успешно");
             }
-        });*/
+        });
+    };
+
+    $scope.init = function() {
+        Test.Init.go(function(data) {
+            //console.log("init", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });
     };
 
     $scope.compile = function() {

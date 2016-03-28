@@ -95,4 +95,4 @@ CREATE TABLE IF NOT EXISTS acs.vcs_tables
 
 END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE
+  LANGUAGE plpgsql VOLATILE;

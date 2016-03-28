@@ -11,4 +11,4 @@ SELECT user_id INTO user_auth FROM acs.tokens WHERE token=$1 AND exp_date >= now
 RETURN user_auth;
 END;
 $BODY$
-  LANGUAGE plpgsql VOLATILE
+  LANGUAGE plpgsql VOLATILE;
