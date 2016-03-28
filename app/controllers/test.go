@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/robfig/revel"
 	"database/sql"
+	"github.com/gchaincl/dotsql"
 )
 
 type TestCntl struct {
@@ -88,23 +89,30 @@ func (c TestCntl) Init() revel.Result {
 	//install tools
 	_, err = dbGeneral.Exec("CREATE EXTENSION \"uuid-ossp\"")
 	_, err = dbStat1.Exec("CREATE EXTENSION \"uuid-ossp\"")
+
+	dot, err := dotsql.LoadFromFile("gocode/src/info/sql/functions.sql")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	_, err = dot.Exec(dbGeneral, "install-functions")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
 
 	//install acs
-	/*_, err = dbGeneral.Query("SELECT acs_install()")
+	_, err = dbGeneral.Query("SELECT acs_install()")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
-	}*/
+	}
 
-	/*_, err = dbStat1.Query("SELECT acs_install()")
+	_, err = dbStat1.Query("SELECT acs_install()")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
-	}*/
+	}
 
 	//init
 

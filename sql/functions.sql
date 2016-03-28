@@ -1,3 +1,4 @@
+-- name: install-functions
 CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
  RETURNS TEXT AS
 $BODY$

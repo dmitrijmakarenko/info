@@ -12,7 +12,7 @@ IF cdate IS NULL THEN
 	RETURN;
 END IF;
 --temp table
---DROP TABLE IF EXISTS acs.transfer_data;
+DROP TABLE IF EXISTS acs.transfer_data;
 CREATE TABLE acs.transfer_data (
   tname text NOT NULL primary key,
   data json
@@ -20,7 +20,7 @@ CREATE TABLE acs.transfer_data (
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	EXECUTE 'SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
+	EXECUTE 'SELECT json_agg(t) FROM (SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
 	INSERT INTO acs.transfer_data(tname, data) VALUES(tname,json_data);
    END LOOP;
 
