@@ -4,6 +4,8 @@ import (
 	"github.com/robfig/revel"
 	"database/sql"
 	"github.com/gchaincl/dotsql"
+	"os"
+	"io/ioutil"
 )
 
 type TestCntl struct {
@@ -90,7 +92,25 @@ func (c TestCntl) Init() revel.Result {
 	_, err = dbGeneral.Exec("CREATE EXTENSION \"uuid-ossp\"")
 	_, err = dbStat1.Exec("CREATE EXTENSION \"uuid-ossp\"")
 
-	dot, err := dotsql.LoadFromFile("gocode/src/info/sql/functions.sql")
+	f, err := os.Create("gocode/src/info/sql/func_acs.sql")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	_, err = f.WriteString("-- name: install-functions\n")
+
+	files, _ := ioutil.ReadDir("gocode/src/info/sql/functions/")
+	for _, file := range files {
+		b, err := ioutil.ReadFile("gocode/src/info/sql/functions/" + file.Name())
+		_, err = f.WriteString(string(b))
+		_, err = f.WriteString("\n\n")
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+	}
+
+	dot, err := dotsql.LoadFromFile("gocode/src/info/sql/func_acs.sql")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -102,7 +122,7 @@ func (c TestCntl) Init() revel.Result {
 	}
 
 	//install acs
-	_, err = dbGeneral.Query("SELECT acs_install()")
+	/*_, err = dbGeneral.Query("SELECT acs_install()")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
@@ -112,7 +132,7 @@ func (c TestCntl) Init() revel.Result {
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
-	}
+	}*/
 
 	//init
 

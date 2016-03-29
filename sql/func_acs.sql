@@ -1,5 +1,5 @@
 -- name: install-functions
-CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
+﻿CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
  RETURNS TEXT AS
 $BODY$
 DECLARE
@@ -19,8 +19,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION acs_copy_from_file()
+﻿CREATE OR REPLACE FUNCTION acs_copy_from_file()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -44,8 +43,8 @@ FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
    LOOP
 	--stucture table
 	structure = '';
-	FOR column_name, column_type IN EXECUTE 'SELECT c.column_name, c.data_type
-	FROM information_schema.tables t JOIN information_schema.columns c ON t.table_name = c.table_name
+	FOR column_name, column_type IN EXECUTE 'SELECT c.column_name, c.data_type 
+	FROM information_schema.tables t JOIN information_schema.columns c ON t.table_name = c.table_name 
 	WHERE t.table_schema = '|| quote_literal('public') ||' AND t.table_catalog = current_database() AND t.table_name = ' || quote_literal(table_name)
 	LOOP
 		structure = structure || column_name || ' ' || column_type || ',';
@@ -65,7 +64,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION acs_copy_to_file()
+﻿CREATE OR REPLACE FUNCTION acs_copy_to_file()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -79,7 +78,7 @@ IF cdate IS NULL THEN
 	RETURN;
 END IF;
 --temp table
---DROP TABLE IF EXISTS acs.transfer_data;
+DROP TABLE IF EXISTS acs.transfer_data;
 CREATE TABLE acs.transfer_data (
   tname text NOT NULL primary key,
   data json
@@ -87,7 +86,7 @@ CREATE TABLE acs.transfer_data (
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	EXECUTE 'SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
+	EXECUTE 'SELECT json_agg(t) FROM (SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
 	INSERT INTO acs.transfer_data(tname, data) VALUES(tname,json_data);
    END LOOP;
 
@@ -99,7 +98,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION acs_get_user(text)
+﻿CREATE OR REPLACE FUNCTION acs_get_user(text)
   RETURNS text AS
 $BODY$
 DECLARE
@@ -112,9 +111,9 @@ SELECT user_id INTO user_auth FROM acs.tokens WHERE token=$1 AND exp_date >= now
 RETURN user_auth;
 END;
 $BODY$
-  LANGUAGE plpgsql;
+  LANGUAGE plpgsql VOLATILE;
 
-CREATE OR REPLACE FUNCTION acs_install()
+﻿CREATE OR REPLACE FUNCTION acs_install()
   RETURNS void AS
 $BODY$
 DECLARE
@@ -213,7 +212,31 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
---$1 - uuid security rule
+﻿CREATE OR REPLACE FUNCTION acs_protect_table (TEXT)
+ RETURNS void AS
+$BODY$
+DECLARE
+user_name text;
+BEGIN
+
+--EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
+--EXECUTE 'ALTER TABLE '|| $1 ||' ALTER COLUMN uuid_record SET default uuid_generate_v4()';
+--EXECUTE 'UPDATE '|| $1 ||' SET uuid_record=uuid_generate_v4()';
+EXECUTE 'ALTER TABLE '|| $1 ||' RENAME TO ' || $1 || '_protected';
+EXECUTE 'CREATE OR REPLACE VIEW  '|| $1 ||' AS SELECT * FROM ' || $1 || '_protected';
+
+FOR user_name IN
+	SELECT usename FROM pg_user
+   LOOP
+	EXECUTE 'GRANT ALL PRIVILEGES ON ' || $1 || ' TO ' || user_name;
+	EXECUTE 'REVOKE ALL PRIVILEGES ON ' || $1 || '_protected FROM ' || user_name;
+   END LOOP;
+
+END;
+$BODY$
+ LANGUAGE plpgsql;
+
+﻿--$1 - uuid security rule
 --$2 - uuid record
 --$3 - table name
 CREATE OR REPLACE FUNCTION acs_rec_protect(uuid, uuid, text)
@@ -239,7 +262,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION acs_tg_audit()
+﻿CREATE OR REPLACE FUNCTION acs_tg_audit()
   RETURNS trigger AS
 $BODY$
 DECLARE
@@ -260,7 +283,22 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-CREATE OR REPLACE FUNCTION acs_vcs_compile()
+﻿CREATE OR REPLACE FUNCTION acs_tg_event()
+  RETURNS event_trigger AS
+$BODY$
+DECLARE
+
+BEGIN
+
+IF tg_tag = 'CREATE TABLE' THEN
+	RAISE notice 'command %', tg_tag;
+END IF;
+
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE;
+
+﻿CREATE OR REPLACE FUNCTION acs_vcs_compile()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -310,7 +348,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION acs_vcs_init()
+﻿CREATE OR REPLACE FUNCTION acs_vcs_init()
   RETURNS void AS
 $BODY$
 DECLARE
@@ -335,7 +373,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
+﻿CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -361,7 +399,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-CREATE OR REPLACE FUNCTION acs_vcs_table_rm(text)
+﻿CREATE OR REPLACE FUNCTION acs_vcs_table_rm(text)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -375,5 +413,4 @@ EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
-
 
