@@ -1,4 +1,5 @@
--- name: install-functions﻿CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
+-- name: install-functions
+CREATE OR REPLACE FUNCTION acs_auth(TEXT, TEXT)
  RETURNS TEXT AS
 $BODY$
 DECLARE
@@ -18,7 +19,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿CREATE OR REPLACE FUNCTION acs_copy_from_file()
+CREATE OR REPLACE FUNCTION acs_copy_from_file()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -63,7 +64,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿CREATE OR REPLACE FUNCTION acs_copy_to_file()
+CREATE OR REPLACE FUNCTION acs_copy_to_file()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -97,7 +98,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿CREATE OR REPLACE FUNCTION acs_get_user(text)
+CREATE OR REPLACE FUNCTION acs_get_user(text)
   RETURNS text AS
 $BODY$
 DECLARE
@@ -112,7 +113,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_install()
+CREATE OR REPLACE FUNCTION acs_install()
   RETURNS void AS
 $BODY$
 DECLARE
@@ -211,7 +212,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_protect_table (TEXT)
+CREATE OR REPLACE FUNCTION acs_protect_table (TEXT)
  RETURNS void AS
 $BODY$
 DECLARE
@@ -235,7 +236,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿--$1 - uuid security rule
+--$1 - uuid security rule
 --$2 - uuid record
 --$3 - table name
 CREATE OR REPLACE FUNCTION acs_rec_protect(uuid, uuid, text)
@@ -261,7 +262,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿CREATE OR REPLACE FUNCTION acs_tg_audit()
+CREATE OR REPLACE FUNCTION acs_tg_audit()
   RETURNS trigger AS
 $BODY$
 DECLARE
@@ -282,7 +283,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_tg_event()
+CREATE OR REPLACE FUNCTION acs_tg_event()
   RETURNS event_trigger AS
 $BODY$
 DECLARE
@@ -297,7 +298,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_vcs_compile()
+CREATE OR REPLACE FUNCTION acs_vcs_compile()
  RETURNS void AS
 $BODY$
 DECLARE
@@ -347,7 +348,7 @@ END;
 $BODY$
  LANGUAGE plpgsql;
 
-﻿CREATE OR REPLACE FUNCTION acs_vcs_init()
+CREATE OR REPLACE FUNCTION acs_vcs_init()
   RETURNS void AS
 $BODY$
 DECLARE
@@ -364,7 +365,7 @@ FOR tname IN
 
 INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db) VALUES (uuid_generate_v4(), now(), 'init', current_database());
 
-DROP EVENT TRIGGER acs_tg_event;
+DROP EVENT TRIGGER IF EXISTS acs_tg_event;
 CREATE EVENT TRIGGER acs_tg_event ON ddl_command_end
    EXECUTE PROCEDURE acs_tg_event();
 
@@ -372,7 +373,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
+CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -398,7 +399,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
-﻿CREATE OR REPLACE FUNCTION acs_vcs_table_rm(text)
+CREATE OR REPLACE FUNCTION acs_vcs_table_rm(text)
   RETURNS void AS
 $BODY$
 DECLARE
