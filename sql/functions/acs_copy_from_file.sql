@@ -8,6 +8,7 @@ column_name text;
 column_type text;
 table_name text;
 structure text;
+cuuid uuid;
 BEGIN
 --temp table
 DROP TABLE IF EXISTS acs.transfer_data_t;
@@ -38,17 +39,19 @@ FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t WHERE tty
 	END LOOP;
    END LOOP;
 
---import from acs
-SELECT data INTO json_data FROM acs.transfer_data_t WHERE table_name='acs.changes_history';
-FOR item IN SELECT * FROM json_array_elements(json_data)
-LOOP
-	INSERT INTO acs.changes_history SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text);
-END LOOP;
-
-SELECT data INTO json_data FROM acs.transfer_data_t WHERE table_name='acs.changes_fields';
+--import changed fields
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE tname='acs.changes_fields';
 FOR item IN SELECT * FROM json_array_elements(json_data)
 LOOP
 	INSERT INTO acs.changes_fields SELECT * FROM json_to_record(item) AS x(db_name text,record_uuid uuid,change_uuid uuid,table_name text);
+END LOOP;
+--import history
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE tname='acs.changes_history';
+FOR item IN SELECT * FROM json_array_elements(json_data)
+LOOP
+	INSERT INTO acs.changes_history SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text);
+	SELECT change.change_uuid INTO cuuid FROM (SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text)) AS change;
+	INSERT INTO acs.changes_history(change_parent,change_date,change_type,change_db) VALUES(cuuid,now(),'commit',current_database());
 END LOOP;
 
 DROP TABLE IF EXISTS acs.transfer_data_t;

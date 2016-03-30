@@ -76,10 +76,13 @@ accessSettingsServices.factory('Test', ['$resource',
     function($resource) {
         return {
             Auth: $resource('/auth', {}, { go: { method:'POST', isArray: false, params : {user: '@user', pass: '@pass'} }}),
+            Install: $resource('/test/install', {}, { go: { method:'POST', isArray: false }}),
             Reset: $resource('/test/reset', {}, { go: { method:'POST', isArray: false }}),
             Init: $resource('/test/init', {}, { go: { method:'POST', isArray: false }}),
-            Install: $resource('/test/install', {}, { go: { method:'POST', isArray: false }}),
-            Compile: $resource('/test/compile', {}, { go: { method:'POST', isArray: false }})
+            Work: $resource('/test/work', {}, { go: { method:'POST', isArray: false }}),
+            Compile: $resource('/test/compile', {}, { go: { method:'POST', isArray: false }}),
+            CopyToFile: $resource('/test/copytofile', {}, { go: { method:'POST', isArray: false }}),
+            CopyFromFile: $resource('/test/copyfromfile', {}, { go: { method:'POST', isArray: false }})
         };
     }]);
 

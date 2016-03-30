@@ -119,9 +119,42 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         });
     };
 
+    $scope.work = function() {
+        Test.Work.go(function(data) {
+            //console.log("work", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });
+    };
+
     $scope.compile = function() {
         Test.Compile.go(function(data) {
             console.log("compile", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });
+    };
+
+    $scope.copyToFile = function() {
+        Test.CopyToFile.go(function(data) {
+            //console.log("copyToFile", data);
+            if (data.error) {
+                $scope.showErrorMsg(data.error);
+            } else {
+                $scope.showSuccessMsg("Успешно");
+            }
+        });
+    };
+
+    $scope.copyFromFile = function() {
+        Test.CopyFromFile.go(function(data) {
+            //console.log("copyFromFile", data);
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
