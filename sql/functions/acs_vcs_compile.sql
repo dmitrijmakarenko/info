@@ -6,13 +6,13 @@ tname text;
 ruuid text;
 uuid_change uuid;
 cdate timestamp;
+cuuid uuid;
 r record;
 data text;
 hash text;
 BEGIN
 
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
---RAISE notice 'date %', cdate;
+SELECT change_date,change_uuid INTO cdate,cuuid FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
 IF cdate IS NULL THEN
 	RETURN;
 END IF;
@@ -27,14 +27,11 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
---RAISE notice 'data %', data;
 hash = md5(data);
---RAISE notice 'hash %', hash;
 uuid_change = uuid_generate_v4();
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	--RAISE notice 'table %', tname;
 	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP
 		--RAISE notice 'uuid record %', ruuid;
@@ -42,7 +39,7 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
-INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_change, now(), 'compile', current_database(), hash);
+INSERT INTO acs.changes_history(change_uuid,change_parent,change_date,change_type,change_db,hash) VALUES (uuid_change,cuuid,now(),'compile',current_database(),hash);
 
 END;
 $BODY$

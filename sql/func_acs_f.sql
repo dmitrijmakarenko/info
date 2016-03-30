@@ -34,17 +34,18 @@ BEGIN
 DROP TABLE IF EXISTS acs.transfer_data_t;
 CREATE TABLE acs.transfer_data_t (
   tname text NOT NULL primary key,
+  ttype text,
   data json
 );
 
 COPY acs.transfer_data_t FROM '/tmp/transfer.data';
 
-FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
+FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t WHERE ttype='data'
    LOOP
 	--stucture table
 	structure = '';
-	FOR column_name, column_type IN EXECUTE 'SELECT c.column_name, c.data_type 
-	FROM information_schema.tables t JOIN information_schema.columns c ON t.table_name = c.table_name 
+	FOR column_name, column_type IN EXECUTE 'SELECT c.column_name, c.data_type
+	FROM information_schema.tables t JOIN information_schema.columns c ON t.table_name = c.table_name
 	WHERE t.table_schema = '|| quote_literal('public') ||' AND t.table_catalog = current_database() AND t.table_name = ' || quote_literal(table_name)
 	LOOP
 		structure = structure || column_name || ' ' || column_type || ',';
@@ -58,6 +59,19 @@ FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
 	END LOOP;
    END LOOP;
 
+--import from acs
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE table_name='acs.changes_history';
+FOR item IN SELECT * FROM json_array_elements(json_data)
+LOOP
+	INSERT INTO acs.changes_history SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text);
+END LOOP;
+
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE table_name='acs.changes_fields';
+FOR item IN SELECT * FROM json_array_elements(json_data)
+LOOP
+	INSERT INTO acs.changes_fields SELECT * FROM json_to_record(item) AS x(db_name text,record_uuid uuid,change_uuid uuid,table_name text);
+END LOOP;
+
 DROP TABLE IF EXISTS acs.transfer_data_t;
 
 END;
@@ -70,10 +84,17 @@ $BODY$
 DECLARE
 cdate timestamp;
 json_data json;
+cparent uuid;
+cuuid uuid;
 tname text;
 BEGIN
---get last date
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
+--get change compile
+SELECT change_uuid,change_parent INTO cuuid,cparent FROM acs.changes_history WHERE change_type='compile' AND change_parent IS NOT NULL ORDER BY change_date DESC LIMIT 1;
+IF cuuid IS NULL THEN
+	RETURN;
+END IF;
+--get date
+SELECT change_date INTO cdate FROM acs.changes_history WHERE change_uuid=cparent;
 IF cdate IS NULL THEN
 	RETURN;
 END IF;
@@ -81,14 +102,20 @@ END IF;
 DROP TABLE IF EXISTS acs.transfer_data;
 CREATE TABLE acs.transfer_data (
   tname text NOT NULL primary key,
+  ttype text,
   data json
 );
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
 	EXECUTE 'SELECT json_agg(t) FROM (SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
-	INSERT INTO acs.transfer_data(tname, data) VALUES(tname,json_data);
+	INSERT INTO acs.transfer_data(tname, ttype, data) VALUES(tname, 'data', json_data);
    END LOOP;
+
+SELECT json_agg(t) INTO json_data FROM (SELECT * FROM acs.changes_history WHERE change_uuid=cuuid) t;
+INSERT INTO acs.transfer_data(tname, ttype, data) VALUES('acs.changes_history', 'acs', json_data);
+SELECT json_agg(t) INTO json_data FROM (SELECT * FROM acs.changes_fields WHERE change_uuid=cuuid) t;
+INSERT INTO acs.transfer_data(tname, ttype, data) VALUES('acs.changes_fields', 'acs', json_data);
 
 COPY acs.transfer_data TO '/tmp/transfer.data';
 
@@ -181,6 +208,7 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 CREATE TABLE IF NOT EXISTS acs.changes_history
 (
   change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+  change_parent uuid,
   change_date timestamp without time zone NOT NULL,
   change_type text,
   change_db text,
@@ -306,13 +334,13 @@ tname text;
 ruuid text;
 uuid_change uuid;
 cdate timestamp;
+cuuid uuid;
 r record;
 data text;
 hash text;
 BEGIN
 
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
---RAISE notice 'date %', cdate;
+SELECT change_date,change_uuid INTO cdate,cuuid FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
 IF cdate IS NULL THEN
 	RETURN;
 END IF;
@@ -327,14 +355,11 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
---RAISE notice 'data %', data;
 hash = md5(data);
---RAISE notice 'hash %', hash;
 uuid_change = uuid_generate_v4();
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	--RAISE notice 'table %', tname;
 	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP
 		--RAISE notice 'uuid record %', ruuid;
@@ -342,7 +367,7 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
-INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_change, now(), 'compile', current_database(), hash);
+INSERT INTO acs.changes_history(change_uuid,change_parent,change_date,change_type,change_db,hash) VALUES (uuid_change,cuuid,now(),'compile',current_database(),hash);
 
 END;
 $BODY$
@@ -378,6 +403,7 @@ CREATE OR REPLACE FUNCTION acs_vcs_table_add(text)
 $BODY$
 DECLARE
 ruuid text;
+cnt int;
 BEGIN
 
 EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
@@ -393,7 +419,10 @@ EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
 AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
 EXECUTE PROCEDURE acs_tg_audit()';
 
-EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+EXECUTE 'SELECT COUNT(*) FROM acs.vcs_tables WHERE table_name='|| quote_literal($1) INTO cnt;
+IF cnt = 0 THEN
+	EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+END IF;
 
 END;
 $BODY$
@@ -413,4 +442,3 @@ EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
-

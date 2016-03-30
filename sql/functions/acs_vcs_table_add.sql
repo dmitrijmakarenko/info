@@ -3,6 +3,7 @@
 $BODY$
 DECLARE
 ruuid text;
+cnt int;
 BEGIN
 
 EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
@@ -18,7 +19,10 @@ EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
 AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
 EXECUTE PROCEDURE acs_tg_audit()';
 
-EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+EXECUTE 'SELECT COUNT(*) FROM acs.vcs_tables WHERE table_name='|| quote_literal($1) INTO cnt;
+IF cnt = 0 THEN
+	EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+END IF;
 
 END;
 $BODY$

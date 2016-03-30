@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 CREATE TABLE IF NOT EXISTS acs.changes_history
 (
   change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+  change_parent uuid,
   change_date timestamp without time zone NOT NULL,
   change_type text,
   change_db text,
