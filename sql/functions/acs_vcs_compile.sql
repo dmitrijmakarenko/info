@@ -18,7 +18,7 @@ IF cdate IS NULL THEN
 END IF;
 
 data = '';
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	data = data || tname;
 	FOR r IN EXECUTE 'SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
@@ -30,7 +30,7 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 hash = md5(data);
 uuid_change = uuid_generate_v4();
 
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP

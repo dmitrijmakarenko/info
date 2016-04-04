@@ -174,7 +174,7 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         });
     };
 
-    $scope.goTest = function() {
+    $scope.testGet = function() {
         if ($scope.table) {
 
             var params = {};
@@ -193,4 +193,25 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
             });
         }
     };
+
+    $scope.testAdd = function() {
+        if ($scope.table) {
+
+            var params = {};
+            params.table = $scope.table;
+            params.token = token||$scope.token||"";
+            params.columns = ["val"];
+            params.values = ["220"];
+
+            Data.Add.go({params: JSON.stringify(params)}, function(data) {
+                console.log("add data test", data);
+                if (data.error) {
+                    $scope.showErrorMsg(data.error);
+                } else {
+                    $scope.showSuccessMsg("Успешно");
+                }
+            });
+        }
+    };
+
 });

@@ -85,11 +85,12 @@ func (c TestCntl) Reset() revel.Result {
 
 func (c TestCntl) Install() revel.Result {
 	ret := make(map[string]string)
-	_, err := DB.Query("SELECT acs_install()")
+	/*_, err := DB.Query("SELECT acs_install()")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
-	}
+	}*/
+	CompileFunc()
 	return c.RenderJson(ret)
 }
 

@@ -11,53 +11,57 @@ IF cnt = 0 THEN
 END IF;
 
 --users
-CREATE TABLE IF NOT EXISTS acs.users (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.users
+(
 	id text NOT NULL,
 	pass text NOT NULL,
 	position_user text,
 	realname text
 );
 --groups
-CREATE TABLE IF NOT EXISTS acs.groups (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups
+(
 	group_id text NOT NULL,
 	realname text
 );
 --group-user
-CREATE TABLE IF NOT EXISTS acs.group_user (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.group_user
+(
 	group_id uuid NOT NULL,
 	user_id text NOT NULL
 );
 --group-struct
-CREATE TABLE IF NOT EXISTS acs.groups_struct (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups_struct
+(
 	group_id uuid NOT NULL,
 	parent_id uuid,
 	level integer
 );
 --record_rule
-CREATE TABLE IF NOT EXISTS acs.rule_record (
+CREATE TABLE IF NOT EXISTS acs.rule_record
+(
 	uuid_record uuid NOT NULL,
 	security_rule uuid NOT NULL
 );
 --rules
-CREATE TABLE IF NOT EXISTS acs.rules (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules
+(
 	security_rule uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
-CREATE TABLE IF NOT EXISTS acs.rules_data (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules_data
+(
 	security_rule uuid NOT NULL,
 	rule_user text,
 	rule_action text,
-	rule_group text
+	rule_group text,
+	temp_label text,
+	temp_time timestamp
 );
 --tokens
-CREATE TABLE IF NOT EXISTS acs.tokens (
+CREATE TABLE IF NOT EXISTS acs.tokens
+(
 	user_id text NOT NULL,
 	token text NOT NULL,
 	exp_date timestamp
@@ -65,33 +69,33 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 --changes_history
 CREATE TABLE IF NOT EXISTS acs.changes_history
 (
-  change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
-  change_parent uuid,
-  change_date timestamp without time zone NOT NULL,
-  change_type text,
-  change_db text,
-  hash text
+	change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+	change_parent uuid,
+	change_date timestamp without time zone NOT NULL,
+	change_type text,
+	change_db text,
+	hash text
 );
 --changes_fields
 CREATE TABLE IF NOT EXISTS acs.changes_fields
 (
-  db_name text NOT NULL,
-  record_uuid uuid NOT NULL,
-  change_uuid uuid NOT NULL,
-  table_name text NOT NULL
+	db_name text NOT NULL,
+	record_uuid uuid NOT NULL,
+	change_uuid uuid NOT NULL,
+	table_name text NOT NULL
 );
 --record_changes
 CREATE TABLE IF NOT EXISTS acs.record_changes
 (
-  record_uuid uuid NOT NULL,
-  time_modified timestamp without time zone NOT NULL,
-  table_name text NOT NULL
+	record_uuid uuid NOT NULL,
+	time_modified timestamp without time zone NOT NULL,
+	table_name text NOT NULL
 );
 --list tables
-CREATE TABLE IF NOT EXISTS acs.vcs_tables
+CREATE TABLE IF NOT EXISTS acs.tables
 (
-  table_name text NOT NULL,
-  schema_name text NOT NULL
+	table_name text NOT NULL,
+	schema_name text NOT NULL
 );
 
 END;

@@ -24,9 +24,8 @@ accessSettings.controller('ruleCntl', function ($scope, $routeParams, Rules) {
     $scope.selectUsers = true;
 
     $scope.operations = [
-        {operation: "select", text: "Просмотр"},
-        {operation: "insert", text: "Добавление"},
-        {operation: "update", text: "Изменение"}
+        {operation: "r", text: "Просмотр"},
+        {operation: "w", text: "Изменение"}
     ];
 
     Rules.Data.go(function(data) {

@@ -109,7 +109,7 @@ CREATE TABLE acs.transfer_data (
   data json
 );
 
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	EXECUTE 'SELECT json_agg(t) FROM (SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
 	INSERT INTO acs.transfer_data(tname, ttype, data) VALUES(tname, 'data', json_data);
@@ -143,6 +143,34 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
 
+﻿--$1 - uuid record
+--$2 - user
+CREATE OR REPLACE FUNCTION acs_insert_record(uuid, text)
+ RETURNS void AS
+$BODY$
+DECLARE
+tmp_rec bool;
+rule_uuid uuid;
+BEGIN
+
+rule_uuid = uuid_generate_v4();
+
+tmp_rec = true;
+
+INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($1, rule_uuid);
+
+IF tmp_rec THEN
+	INSERT INTO acs.rules_data(security_rule, rule_user, rule_action, temp_label, temp_time) 
+	VALUES (rule_uuid, $2, 'r', 't', now()+interval '1' day);
+ELSE
+	INSERT INTO acs.rules_data(security_rule, rule_user, rule_action) 
+	VALUES (rule_uuid, $2, 'r');
+END IF;
+
+END;
+$BODY$
+ LANGUAGE plpgsql;
+
 ﻿CREATE OR REPLACE FUNCTION acs_install()
   RETURNS void AS
 $BODY$
@@ -156,53 +184,57 @@ IF cnt = 0 THEN
 END IF;
 
 --users
-CREATE TABLE IF NOT EXISTS acs.users (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.users
+(
 	id text NOT NULL,
 	pass text NOT NULL,
 	position_user text,
 	realname text
 );
 --groups
-CREATE TABLE IF NOT EXISTS acs.groups (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups
+(
 	group_id text NOT NULL,
 	realname text
 );
 --group-user
-CREATE TABLE IF NOT EXISTS acs.group_user (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.group_user
+(
 	group_id uuid NOT NULL,
 	user_id text NOT NULL
 );
 --group-struct
-CREATE TABLE IF NOT EXISTS acs.groups_struct (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups_struct
+(
 	group_id uuid NOT NULL,
 	parent_id uuid,
 	level integer
 );
 --record_rule
-CREATE TABLE IF NOT EXISTS acs.rule_record (
+CREATE TABLE IF NOT EXISTS acs.rule_record
+(
 	uuid_record uuid NOT NULL,
 	security_rule uuid NOT NULL
 );
 --rules
-CREATE TABLE IF NOT EXISTS acs.rules (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules
+(
 	security_rule uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
-CREATE TABLE IF NOT EXISTS acs.rules_data (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules_data
+(
 	security_rule uuid NOT NULL,
 	rule_user text,
 	rule_action text,
-	rule_group text
+	rule_group text,
+	temp_label text,
+	temp_time timestamp
 );
 --tokens
-CREATE TABLE IF NOT EXISTS acs.tokens (
+CREATE TABLE IF NOT EXISTS acs.tokens
+(
 	user_id text NOT NULL,
 	token text NOT NULL,
 	exp_date timestamp
@@ -210,33 +242,33 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 --changes_history
 CREATE TABLE IF NOT EXISTS acs.changes_history
 (
-  change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
-  change_parent uuid,
-  change_date timestamp without time zone NOT NULL,
-  change_type text,
-  change_db text,
-  hash text
+	change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+	change_parent uuid,
+	change_date timestamp without time zone NOT NULL,
+	change_type text,
+	change_db text,
+	hash text
 );
 --changes_fields
 CREATE TABLE IF NOT EXISTS acs.changes_fields
 (
-  db_name text NOT NULL,
-  record_uuid uuid NOT NULL,
-  change_uuid uuid NOT NULL,
-  table_name text NOT NULL
+	db_name text NOT NULL,
+	record_uuid uuid NOT NULL,
+	change_uuid uuid NOT NULL,
+	table_name text NOT NULL
 );
 --record_changes
 CREATE TABLE IF NOT EXISTS acs.record_changes
 (
-  record_uuid uuid NOT NULL,
-  time_modified timestamp without time zone NOT NULL,
-  table_name text NOT NULL
+	record_uuid uuid NOT NULL,
+	time_modified timestamp without time zone NOT NULL,
+	table_name text NOT NULL
 );
 --list tables
-CREATE TABLE IF NOT EXISTS acs.vcs_tables
+CREATE TABLE IF NOT EXISTS acs.tables
 (
-  table_name text NOT NULL,
-  schema_name text NOT NULL
+	table_name text NOT NULL,
+	schema_name text NOT NULL
 );
 
 END;
@@ -287,7 +319,12 @@ IF cnt = 0 THEN
 	RETURN;
 END IF;
 
-INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
+SELECT COUNT(*) INTO cnt FROM acs.rule_record WHERE uuid_record=$2;
+IF cnt = 0 THEN
+	INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
+ELSE
+	UPDATE acs.rule_record SET security_rule=$1 WHERE uuid_record=$2;
+END IF;
 
 END;
 $BODY$
@@ -349,7 +386,7 @@ IF cdate IS NULL THEN
 END IF;
 
 data = '';
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	data = data || tname;
 	FOR r IN EXECUTE 'SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
@@ -361,7 +398,7 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 hash = md5(data);
 uuid_change = uuid_generate_v4();
 
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP
@@ -422,9 +459,9 @@ EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
 AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
 EXECUTE PROCEDURE acs_tg_audit()';
 
-EXECUTE 'SELECT COUNT(*) FROM acs.vcs_tables WHERE table_name='|| quote_literal($1) INTO cnt;
+EXECUTE 'SELECT COUNT(*) FROM acs.tables WHERE table_name='|| quote_literal($1) INTO cnt;
 IF cnt = 0 THEN
-	EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+	EXECUTE 'INSERT INTO acs.tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
 END IF;
 
 END;
@@ -436,12 +473,10 @@ $BODY$
 $BODY$
 DECLARE
 BEGIN
-
-EXECUTE 'ALTER TABLE '|| $1 ||' DROP COLUMN IF EXISTS uuid_record';
-EXECUTE 'DELETE FROM acs.record_changes WHERE table_name='|| quote_literal($1);
-EXECUTE 'DELETE FROM acs.vcs_tables WHERE table_name='|| quote_literal($1);
-EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
-
+--EXECUTE 'ALTER TABLE '|| $1 ||' DROP COLUMN IF EXISTS uuid_record';
+--EXECUTE 'DELETE FROM acs.record_changes WHERE table_name='|| quote_literal($1);
+EXECUTE 'DELETE FROM acs.tables WHERE table_name='|| quote_literal($1);
+--EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;

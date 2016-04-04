@@ -18,14 +18,21 @@ type DataRecords struct {
 	Error string `json:"error"`
 }
 
-type DataParams struct {
+type DataGetParams struct {
 	Token string `json:"token"`
 	Table string `json:"table"`
 }
 
+type DataAddParams struct {
+	Token string `json:"token"`
+	Table string `json:"table"`
+	Columns []string `json:"columns"`
+	Values []string `json:"values"`
+}
+
 func (c DataCntl) Get(params string) revel.Result {
 	var ret DataRecords
-	var p DataParams
+	var p DataGetParams
 	var hasRights bool
 
 	err := json.Unmarshal([]byte(params), &p)
@@ -49,7 +56,7 @@ func (c DataCntl) Get(params string) revel.Result {
 	}
 
 	//get rights
-	rows, err := DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='select'", user)
+	rows, err := DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='r'", user)
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
@@ -92,7 +99,6 @@ func (c DataCntl) Get(params string) revel.Result {
 		//stmt, err = DB.Prepare("SELECT * FROM " + p.Table + " WHERE rule IS NULL")
 	}
 	if err != nil {
-		revel.ERROR.Println("[get data] stmt", err)
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
 	}
@@ -102,11 +108,9 @@ func (c DataCntl) Get(params string) revel.Result {
 		rows, err = stmt.Query()
 	}
 	if err != nil {
-		revel.ERROR.Println("[get data] stmt rows", err)
 		ret.Error = err.Error()
 		return c.RenderJson(ret)
 	}
-	revel.INFO.Println("[get data] stmt", stmt)
 
 	columnNames, err := rows.Columns()
 	ret.Columns = columnNames
@@ -132,6 +136,86 @@ func (c DataCntl) Get(params string) revel.Result {
 		retRows = append(retRows, retRow)
 	}
 	ret.Rows = retRows
+
+	return c.RenderJson(ret)
+}
+
+func (c DataCntl) Add(params string) revel.Result {
+	ret := make(map[string]string)
+	var p DataAddParams
+	var user, columns, values, uuidRecord string
+
+	err := json.Unmarshal([]byte(params), &p)
+	if err != nil {
+		ret["error"] = "invalid params"
+		return c.RenderJson(ret)
+	}
+	if len(p.Columns) != len(p.Values) {
+		ret["error"] = "incorrect count values"
+		return c.RenderJson(ret)
+	}
+	if len(p.Values) == 0 {
+		ret["error"] = "empty values"
+		return c.RenderJson(ret)
+	}
+
+	//check user
+	err = DB.QueryRow("SELECT COALESCE(acs_get_user($1), '')", p.Token).Scan(&user)
+	if err != nil {
+		ret["error"] = "authorization error: " + err.Error()
+		return c.RenderJson(ret)
+	}
+	if user == "" {
+		ret["error"] = "authorization error"
+		return c.RenderJson(ret)
+	}
+
+	//prepare query
+	columns += "("
+	for i, column := range p.Columns {
+		columns += column
+		if (i != len(p.Columns) - 1) {
+			columns += ", "
+		}
+	}
+	columns += ")"
+	//revel.INFO.Println("add data columns", columns)
+	values += "("
+	for i, value := range p.Values {
+		values += value
+		if (i != len(p.Values) - 1) {
+			values += ", "
+		}
+	}
+	values += ")"
+	//revel.INFO.Println("add data values", values)
+
+	//insert data
+	err = DB.QueryRow("INSERT INTO "+p.Table+columns+" VALUES"+values+" RETURNING uuid_record").Scan(&uuidRecord)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	revel.INFO.Println("add data row", uuidRecord)
+
+	//store rule
+	_, err = DB.Query("SELECT acs_insert_record($1, $2)", uuidRecord, user)
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+
+	return c.RenderJson(ret)
+}
+
+func (c DataCntl) Delete(params string) revel.Result {
+	ret := make(map[string]string)
+
+	return c.RenderJson(ret)
+}
+
+func (c DataCntl) Update(params string) revel.Result {
+	ret := make(map[string]string)
 
 	return c.RenderJson(ret)
 }

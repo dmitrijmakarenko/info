@@ -32,7 +32,7 @@ func (c VcsCntl) Tables() revel.Result {
 		}
 	}
 
-	rows, err = DB.Query("SELECT table_name FROM acs.vcs_tables WHERE schema_name = 'public'")
+	rows, err = DB.Query("SELECT table_name FROM acs.tables WHERE schema_name = 'public'")
 	if err != nil {
 		ret.Error = err.Error()
 		return c.RenderJson(ret)

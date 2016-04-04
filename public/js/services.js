@@ -98,6 +98,7 @@ accessSettingsServices.factory('VCS', ['$resource',
 accessSettingsServices.factory('Data', ['$resource',
     function($resource) {
         return {
-            Get: $resource('/data/get', {}, { go: { method:'POST', isArray: false, params : {params: '@params'} }})
+            Get: $resource('/data/get', {}, { go: { method:'POST', isArray: false, params : {params: '@params'} }}),
+            Add: $resource('/data/add', {}, { go: { method:'POST', isArray: false, params : {params: '@params'} }})
         };
     }]);
