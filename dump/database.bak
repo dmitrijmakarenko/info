@@ -126,17 +126,19 @@ column_name text;
 column_type text;
 table_name text;
 structure text;
+cuuid uuid;
 BEGIN
 --temp table
 DROP TABLE IF EXISTS acs.transfer_data_t;
 CREATE TABLE acs.transfer_data_t (
   tname text NOT NULL primary key,
+  ttype text,
   data json
 );
 
 COPY acs.transfer_data_t FROM '/tmp/transfer.data';
 
-FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
+FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t WHERE ttype='data'
    LOOP
 	--stucture table
 	structure = '';
@@ -154,6 +156,21 @@ FOR table_name,json_data IN SELECT tname,data FROM acs.transfer_data_t
 		EXECUTE 'INSERT INTO '|| table_name ||' SELECT * FROM json_to_record('|| quote_literal(item) ||') as x(' || structure || ')';
 	END LOOP;
    END LOOP;
+
+--import changed fields
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE tname='acs.changes_fields';
+FOR item IN SELECT * FROM json_array_elements(json_data)
+LOOP
+	INSERT INTO acs.changes_fields SELECT * FROM json_to_record(item) AS x(db_name text,record_uuid uuid,change_uuid uuid,table_name text);
+END LOOP;
+--import history
+SELECT data INTO json_data FROM acs.transfer_data_t WHERE tname='acs.changes_history';
+FOR item IN SELECT * FROM json_array_elements(json_data)
+LOOP
+	INSERT INTO acs.changes_history SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text);
+	SELECT change.change_uuid INTO cuuid FROM (SELECT * FROM json_to_record(item) AS x(change_uuid uuid,change_parent uuid,change_date timestamp,change_type text,change_db text,hash text)) AS change;
+	INSERT INTO acs.changes_history(change_parent,change_date,change_type,change_db) VALUES(cuuid,now(),'commit',current_database());
+END LOOP;
 
 DROP TABLE IF EXISTS acs.transfer_data_t;
 
@@ -173,10 +190,17 @@ CREATE FUNCTION acs_copy_to_file() RETURNS void
 DECLARE
 cdate timestamp;
 json_data json;
+cparent uuid;
+cuuid uuid;
 tname text;
 BEGIN
---get last date
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
+--get change compile
+SELECT change_uuid,change_parent INTO cuuid,cparent FROM acs.changes_history WHERE change_type='compile' AND change_parent IS NOT NULL ORDER BY change_date DESC LIMIT 1;
+IF cuuid IS NULL THEN
+	RETURN;
+END IF;
+--get date
+SELECT change_date INTO cdate FROM acs.changes_history WHERE change_uuid=cparent;
 IF cdate IS NULL THEN
 	RETURN;
 END IF;
@@ -184,14 +208,20 @@ END IF;
 DROP TABLE IF EXISTS acs.transfer_data;
 CREATE TABLE acs.transfer_data (
   tname text NOT NULL primary key,
+  ttype text,
   data json
 );
 
-FOR tname IN SELECT table_name FROM acs.vcs_tables
+FOR tname IN SELECT table_name FROM acs.tables
    LOOP
 	EXECUTE 'SELECT json_agg(t) FROM (SELECT '|| tname ||'.* FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate) ||') t' INTO json_data;
-	INSERT INTO acs.transfer_data(tname, data) VALUES(tname,json_data);
+	INSERT INTO acs.transfer_data(tname, ttype, data) VALUES(tname, 'data', json_data);
    END LOOP;
+
+SELECT json_agg(t) INTO json_data FROM (SELECT * FROM acs.changes_history WHERE change_uuid=cuuid) t;
+INSERT INTO acs.transfer_data(tname, ttype, data) VALUES('acs.changes_history', 'acs', json_data);
+SELECT json_agg(t) INTO json_data FROM (SELECT * FROM acs.changes_fields WHERE change_uuid=cuuid) t;
+INSERT INTO acs.transfer_data(tname, ttype, data) VALUES('acs.changes_fields', 'acs', json_data);
 
 COPY acs.transfer_data TO '/tmp/transfer.data';
 
@@ -225,6 +255,38 @@ $_$;
 ALTER FUNCTION public.acs_get_user(text) OWNER TO postgres;
 
 --
+-- Name: acs_insert_record(uuid, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acs_insert_record(uuid, text) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+tmp_rec bool;
+rule_uuid uuid;
+BEGIN
+
+rule_uuid = uuid_generate_v4();
+
+tmp_rec = true;
+
+INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($1, rule_uuid);
+
+IF tmp_rec THEN
+	INSERT INTO acs.rules_data(security_rule, rule_user, rule_action, temp_label, temp_time) 
+	VALUES (rule_uuid, $2, 'r', 't', now()+interval '1' day);
+ELSE
+	INSERT INTO acs.rules_data(security_rule, rule_user, rule_action) 
+	VALUES (rule_uuid, $2, 'r');
+END IF;
+
+END;
+$_$;
+
+
+ALTER FUNCTION public.acs_insert_record(uuid, text) OWNER TO postgres;
+
+--
 -- Name: acs_install(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -241,53 +303,57 @@ IF cnt = 0 THEN
 END IF;
 
 --users
-CREATE TABLE IF NOT EXISTS acs.users (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.users
+(
 	id text NOT NULL,
 	pass text NOT NULL,
 	position_user text,
 	realname text
 );
 --groups
-CREATE TABLE IF NOT EXISTS acs.groups (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups
+(
 	group_id text NOT NULL,
 	realname text
 );
 --group-user
-CREATE TABLE IF NOT EXISTS acs.group_user (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.group_user
+(
 	group_id uuid NOT NULL,
 	user_id text NOT NULL
 );
 --group-struct
-CREATE TABLE IF NOT EXISTS acs.groups_struct (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.groups_struct
+(
 	group_id uuid NOT NULL,
 	parent_id uuid,
 	level integer
 );
 --record_rule
-CREATE TABLE IF NOT EXISTS acs.rule_record (
+CREATE TABLE IF NOT EXISTS acs.rule_record
+(
 	uuid_record uuid NOT NULL,
 	security_rule uuid NOT NULL
 );
 --rules
-CREATE TABLE IF NOT EXISTS acs.rules (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules
+(
 	security_rule uuid NOT NULL,
 	rule_desc text
 );
 --rules-data
-CREATE TABLE IF NOT EXISTS acs.rules_data (
-	uuid_record uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS acs.rules_data
+(
 	security_rule uuid NOT NULL,
 	rule_user text,
 	rule_action text,
-	rule_group text
+	rule_group text,
+	temp_label text,
+	temp_time timestamp
 );
 --tokens
-CREATE TABLE IF NOT EXISTS acs.tokens (
+CREATE TABLE IF NOT EXISTS acs.tokens
+(
 	user_id text NOT NULL,
 	token text NOT NULL,
 	exp_date timestamp
@@ -295,32 +361,33 @@ CREATE TABLE IF NOT EXISTS acs.tokens (
 --changes_history
 CREATE TABLE IF NOT EXISTS acs.changes_history
 (
-  change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
-  change_date timestamp without time zone NOT NULL,
-  change_type text,
-  change_db text,
-  hash text
+	change_uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+	change_parent uuid,
+	change_date timestamp without time zone NOT NULL,
+	change_type text,
+	change_db text,
+	hash text
 );
 --changes_fields
 CREATE TABLE IF NOT EXISTS acs.changes_fields
 (
-  db_name text NOT NULL,
-  record_uuid uuid NOT NULL,
-  change_uuid uuid NOT NULL,
-  table_name text NOT NULL
+	db_name text NOT NULL,
+	record_uuid uuid NOT NULL,
+	change_uuid uuid NOT NULL,
+	table_name text NOT NULL
 );
 --record_changes
 CREATE TABLE IF NOT EXISTS acs.record_changes
 (
-  record_uuid uuid NOT NULL,
-  time_modified timestamp without time zone NOT NULL,
-  table_name text NOT NULL
+	record_uuid uuid NOT NULL,
+	time_modified timestamp without time zone NOT NULL,
+	table_name text NOT NULL
 );
 --list tables
-CREATE TABLE IF NOT EXISTS acs.vcs_tables
+CREATE TABLE IF NOT EXISTS acs.tables
 (
-  table_name text NOT NULL,
-  schema_name text NOT NULL
+	table_name text NOT NULL,
+	schema_name text NOT NULL
 );
 
 END;
@@ -380,7 +447,12 @@ IF cnt = 0 THEN
 	RETURN;
 END IF;
 
-INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
+SELECT COUNT(*) INTO cnt FROM acs.rule_record WHERE uuid_record=$2;
+IF cnt = 0 THEN
+	INSERT INTO acs.rule_record(uuid_record, security_rule) VALUES ($2, $1);
+ELSE
+	UPDATE acs.rule_record SET security_rule=$1 WHERE uuid_record=$2;
+END IF;
 
 END;
 $_$;
@@ -468,13 +540,13 @@ tname text;
 ruuid text;
 uuid_change uuid;
 cdate timestamp;
+cuuid uuid;
 r record;
 data text;
 hash text;
 BEGIN
 
-SELECT change_date INTO cdate FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
---RAISE notice 'date %', cdate;
+SELECT change_date,change_uuid INTO cdate,cuuid FROM acs.changes_history ORDER BY change_date DESC LIMIT 1;
 IF cdate IS NULL THEN
 	RETURN;
 END IF;
@@ -489,14 +561,11 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
---RAISE notice 'data %', data;
 hash = md5(data);
---RAISE notice 'hash %', hash;
 uuid_change = uuid_generate_v4();
 
 FOR tname IN SELECT table_name FROM acs.vcs_tables
    LOOP
-	--RAISE notice 'table %', tname;
 	FOR ruuid IN EXECUTE 'SELECT '|| tname ||'.uuid_record FROM '|| tname ||' LEFT OUTER JOIN acs.record_changes ON ('|| tname ||'.uuid_record = acs.record_changes.record_uuid) WHERE acs.record_changes.time_modified >= '|| quote_literal(cdate)
 	LOOP
 		--RAISE notice 'uuid record %', ruuid;
@@ -504,7 +573,7 @@ FOR tname IN SELECT table_name FROM acs.vcs_tables
 	END LOOP;
    END LOOP;
 
-INSERT INTO acs.changes_history(change_uuid, change_date, change_type, change_db, hash) VALUES (uuid_change, now(), 'compile', current_database(), hash);
+INSERT INTO acs.changes_history(change_uuid,change_parent,change_date,change_type,change_db,hash) VALUES (uuid_change,cuuid,now(),'compile',current_database(),hash);
 
 END;
 $$;
@@ -552,6 +621,7 @@ CREATE FUNCTION acs_vcs_table_add(text) RETURNS void
     AS $_$
 DECLARE
 ruuid text;
+cnt int;
 BEGIN
 
 EXECUTE 'ALTER TABLE '|| $1 ||' ADD COLUMN uuid_record uuid';
@@ -567,7 +637,10 @@ EXECUTE 'CREATE TRIGGER t_acs_'|| $1 ||'
 AFTER INSERT OR UPDATE OR DELETE ON '|| $1 ||' FOR EACH ROW
 EXECUTE PROCEDURE acs_tg_audit()';
 
-EXECUTE 'INSERT INTO acs.vcs_tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+EXECUTE 'SELECT COUNT(*) FROM acs.tables WHERE table_name='|| quote_literal($1) INTO cnt;
+IF cnt = 0 THEN
+	EXECUTE 'INSERT INTO acs.tables(table_name, schema_name) VALUES('|| quote_literal($1) ||', '|| quote_literal('public') ||')';
+END IF;
 
 END;
 $_$;
@@ -584,12 +657,10 @@ CREATE FUNCTION acs_vcs_table_rm(text) RETURNS void
     AS $_$
 DECLARE
 BEGIN
-
-EXECUTE 'ALTER TABLE '|| $1 ||' DROP COLUMN IF EXISTS uuid_record';
-EXECUTE 'DELETE FROM acs.record_changes WHERE table_name='|| quote_literal($1);
-EXECUTE 'DELETE FROM acs.vcs_tables WHERE table_name='|| quote_literal($1);
-EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
-
+--EXECUTE 'ALTER TABLE '|| $1 ||' DROP COLUMN IF EXISTS uuid_record';
+--EXECUTE 'DELETE FROM acs.record_changes WHERE table_name='|| quote_literal($1);
+EXECUTE 'DELETE FROM acs.tables WHERE table_name='|| quote_literal($1);
+--EXECUTE 'DROP TRIGGER IF EXISTS t_acs_'|| $1 ||' ON ' || $1;
 END;
 $_$;
 
@@ -622,6 +693,7 @@ ALTER TABLE changes_fields OWNER TO postgres;
 
 CREATE TABLE changes_history (
     change_uuid uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    change_parent uuid,
     change_date timestamp without time zone NOT NULL,
     change_type text,
     change_db text,
@@ -636,7 +708,6 @@ ALTER TABLE changes_history OWNER TO postgres;
 --
 
 CREATE TABLE group_user (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id uuid NOT NULL,
     user_id text NOT NULL
 );
@@ -649,7 +720,6 @@ ALTER TABLE group_user OWNER TO postgres;
 --
 
 CREATE TABLE groups (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id text NOT NULL,
     realname text
 );
@@ -662,7 +732,6 @@ ALTER TABLE groups OWNER TO postgres;
 --
 
 CREATE TABLE groups_struct (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     group_id uuid NOT NULL,
     parent_id uuid,
     level integer
@@ -701,7 +770,6 @@ ALTER TABLE rule_record OWNER TO postgres;
 --
 
 CREATE TABLE rules (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     security_rule uuid NOT NULL,
     rule_desc text
 );
@@ -714,15 +782,28 @@ ALTER TABLE rules OWNER TO postgres;
 --
 
 CREATE TABLE rules_data (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     security_rule uuid NOT NULL,
     rule_user text,
     rule_action text,
-    rule_group text
+    rule_group text,
+    temp_label text,
+    temp_time timestamp without time zone
 );
 
 
 ALTER TABLE rules_data OWNER TO postgres;
+
+--
+-- Name: tables; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE tables (
+    table_name text NOT NULL,
+    schema_name text NOT NULL
+);
+
+
+ALTER TABLE tables OWNER TO postgres;
 
 --
 -- Name: tokens; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
@@ -742,7 +823,6 @@ ALTER TABLE tokens OWNER TO postgres;
 --
 
 CREATE TABLE users (
-    uuid_record uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     id text NOT NULL,
     pass text NOT NULL,
     position_user text,
@@ -751,18 +831,6 @@ CREATE TABLE users (
 
 
 ALTER TABLE users OWNER TO postgres;
-
---
--- Name: vcs_tables; Type: TABLE; Schema: acs; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE vcs_tables (
-    table_name text NOT NULL,
-    schema_name text NOT NULL
-);
-
-
-ALTER TABLE vcs_tables OWNER TO postgres;
 
 SET search_path = public, pg_catalog;
 
@@ -780,32 +848,16 @@ CREATE TABLE fruits (
 ALTER TABLE fruits OWNER TO postgres;
 
 --
--- Name: test_protected; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: test; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE test_protected (
+CREATE TABLE test (
     id text,
     name_p text,
     property text,
     price double precision,
-    rule uuid,
     uuid_record uuid DEFAULT uuid_generate_v4()
 );
-
-
-ALTER TABLE test_protected OWNER TO postgres;
-
---
--- Name: test; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW test AS
- SELECT test_protected.id,
-    test_protected.name_p,
-    test_protected.property,
-    test_protected.price,
-    test_protected.rule
-   FROM test_protected;
 
 
 ALTER TABLE test OWNER TO postgres;
@@ -836,8 +888,7 @@ COPY changes_fields (db_name, record_uuid, change_uuid, table_name) FROM stdin;
 -- Data for Name: changes_history; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY changes_history (change_uuid, change_date, change_type, change_db, hash) FROM stdin;
-c215edb8-5d0f-472c-aceb-b638d173c772	2016-03-28 22:47:54.150365	init	infosystem	\N
+COPY changes_history (change_uuid, change_parent, change_date, change_type, change_db, hash) FROM stdin;
 \.
 
 
@@ -845,8 +896,8 @@ c215edb8-5d0f-472c-aceb-b638d173c772	2016-03-28 22:47:54.150365	init	infosystem	
 -- Data for Name: group_user; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY group_user (uuid_record, group_id, user_id) FROM stdin;
-205e3170-dafe-411e-b1a9-a1413f4e852a	a32357af-dba2-4d72-4ac3-79ea26196c96	admin
+COPY group_user (group_id, user_id) FROM stdin;
+14e9f10d-b5ea-48f5-70a2-d06e6333a37e	admin
 \.
 
 
@@ -854,8 +905,8 @@ COPY group_user (uuid_record, group_id, user_id) FROM stdin;
 -- Data for Name: groups; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY groups (uuid_record, group_id, realname) FROM stdin;
-313fe475-19b9-491b-9632-282b190a80f5	a32357af-dba2-4d72-4ac3-79ea26196c96	Группа1
+COPY groups (group_id, realname) FROM stdin;
+14e9f10d-b5ea-48f5-70a2-d06e6333a37e	111
 \.
 
 
@@ -863,7 +914,7 @@ COPY groups (uuid_record, group_id, realname) FROM stdin;
 -- Data for Name: groups_struct; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
+COPY groups_struct (group_id, parent_id, level) FROM stdin;
 \.
 
 
@@ -872,43 +923,15 @@ COPY groups_struct (uuid_record, group_id, parent_id, level) FROM stdin;
 --
 
 COPY record_changes (record_uuid, time_modified, table_name) FROM stdin;
-30c249aa-d9e6-4bbc-b5d1-c79a4c31a732	2016-03-25 11:10:28.600568	ttt
-4367a1cb-b5e9-4f17-bdde-a92622a19a06	2016-03-25 11:10:28.600568	ttt
-ecbc54be-341b-4094-a390-d1c05e0ec91b	2016-03-25 11:10:28.600568	ttt
-dd71d886-eece-40fd-bd84-d2c40d6a66a6	2016-03-25 11:10:28.600568	ttt
-847e9579-56a5-45e5-a6a4-cc5f53b6708d	2016-03-25 11:10:28.600568	ttt
-9686c2f8-20a3-4473-99f5-fa07a895b5cc	2016-03-25 11:10:29.343347	fruits
-4a1d2619-80ef-4515-8ddb-a2c05e277d23	2016-03-25 11:10:29.343347	fruits
-55245439-770e-4e2c-b0f4-f41a5b8c1831	2016-03-25 11:10:29.343347	fruits
-84e5d030-a165-4254-a27e-0e42ac31df83	2016-03-25 11:10:29.343347	fruits
-9feb73a9-8c37-4bdb-80dc-040a1b3dcac4	2016-03-25 11:10:29.863344	test_protected
-047242b7-9162-43d4-9ec6-597a06ea8f65	2016-03-25 11:10:29.863344	test_protected
-0ff5f58c-3943-426b-9f62-bf2b5a93caec	2016-03-25 11:10:29.863344	test_protected
-582c8147-bc09-4579-bff5-731b0207e073	2016-03-25 11:10:29.863344	test_protected
-c5efe97e-8c44-4c18-ad1a-605db0b8879c	2016-03-25 11:10:29.863344	test_protected
-29ee9d10-21ee-49ec-83ee-c9e876da354a	2016-03-28 22:47:54.150365	fruits
-1084da0c-f794-4693-9134-7a5877395e77	2016-03-28 22:47:54.150365	fruits
-77ea5b25-148c-4e4d-8c1b-8715e4d651fe	2016-03-28 22:47:54.150365	fruits
-7158edee-c518-4940-9e43-dfe91a33b4ef	2016-03-28 22:47:54.150365	fruits
-d2756244-fc95-46f1-bc61-6c25d72f1123	2016-03-28 22:47:54.150365	ttt
-979c4dce-e346-4c09-ba49-5b6bc49c0f0a	2016-03-28 22:47:54.150365	ttt
-1ac8b2ee-846f-42d1-9c91-25fd579d12d0	2016-03-28 22:47:54.150365	ttt
-88d32a5f-12c6-4589-9c23-e74f1d8f0571	2016-03-28 22:47:54.150365	ttt
-c8b7f10b-3ccd-4432-b821-25bcd1d47e06	2016-03-28 22:47:54.150365	ttt
-964281b7-4f78-4845-ac42-61dde9a1067d	2016-03-28 22:47:54.150365	test_protected
-48ad79ac-43aa-4553-a8d7-bf0cf6d9ab7d	2016-03-28 22:47:54.150365	test_protected
-33373ff7-22c2-444d-9882-0ee5fa826f51	2016-03-28 22:47:54.150365	test_protected
-610037ab-e53f-4163-b97a-6f9207d03efc	2016-03-28 22:47:54.150365	test_protected
-2642ebdd-f0a1-4ad0-aa1a-a1c18dbf9aad	2016-03-28 22:47:54.150365	test_protected
-d2756244-fc95-46f1-bc61-6c25d72f1123	2016-03-28 22:56:57.836149	ttt
-979c4dce-e346-4c09-ba49-5b6bc49c0f0a	2016-03-28 22:56:57.836149	ttt
-1ac8b2ee-846f-42d1-9c91-25fd579d12d0	2016-03-28 22:56:57.836149	ttt
-88d32a5f-12c6-4589-9c23-e74f1d8f0571	2016-03-28 22:56:57.836149	ttt
-c8b7f10b-3ccd-4432-b821-25bcd1d47e06	2016-03-28 22:56:57.836149	ttt
-29ee9d10-21ee-49ec-83ee-c9e876da354a	2016-03-28 22:56:57.836149	fruits
-1084da0c-f794-4693-9134-7a5877395e77	2016-03-28 22:56:57.836149	fruits
-77ea5b25-148c-4e4d-8c1b-8715e4d651fe	2016-03-28 22:56:57.836149	fruits
-7158edee-c518-4940-9e43-dfe91a33b4ef	2016-03-28 22:56:57.836149	fruits
+d99962fb-aea8-48f9-ae29-0cda9ac1eb0a	2016-04-04 16:16:07.158561	fruits
+4e9c1cee-757e-4430-8c16-38e860316300	2016-04-04 16:16:23.320352	fruits
+cc7af527-b70d-4036-8b75-e6b62a910d33	2016-04-04 16:16:33.400712	fruits
+93b685dd-e4e3-4b87-8352-c27425e9273c	2016-04-04 16:16:56.293903	ttt
+100ebb9d-0b18-4e50-ad0b-22b03e49d753	2016-04-04 16:17:01.52064	ttt
+229c4053-7497-4b8a-964f-a10870139c7e	2016-04-04 16:17:04.568999	ttt
+ed91a0f4-aae2-4803-841e-c828f24eb005	2016-04-04 16:17:07.832913	ttt
+e354a3c5-d637-4b0c-a901-2bf6ed51e78f	2016-04-04 16:17:10.392605	ttt
+38b5558a-ef8f-41e6-856d-8295542b5ddc	2016-04-04 17:32:15.70598	ttt
 \.
 
 
@@ -917,8 +940,9 @@ c8b7f10b-3ccd-4432-b821-25bcd1d47e06	2016-03-28 22:56:57.836149	ttt
 --
 
 COPY rule_record (uuid_record, security_rule) FROM stdin;
-ceeb232b-ec3b-4f2e-b8ca-85df84e4b745	c1900786-a548-4b74-55d4-ce79acd8fce1
-105393f5-d2ae-470a-b105-952cf2a9c4d3	c1900786-a548-4b74-55d4-ce79acd8fce1
+229c4053-7497-4b8a-964f-a10870139c7e	034c4fc8-1060-47ba-4004-4c52a99176e3
+b0069d8b-23d2-4585-8427-8e160850c65d	4293a022-259f-4879-9648-8e303202dd40
+38b5558a-ef8f-41e6-856d-8295542b5ddc	c470aba9-5263-440f-a54a-0a3f825f01e2
 \.
 
 
@@ -926,8 +950,9 @@ ceeb232b-ec3b-4f2e-b8ca-85df84e4b745	c1900786-a548-4b74-55d4-ce79acd8fce1
 -- Data for Name: rules; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules (uuid_record, security_rule, rule_desc) FROM stdin;
-6fdc6b29-5733-4773-8b76-a7205a40e3e9	c1900786-a548-4b74-55d4-ce79acd8fce1	Тест
+COPY rules (security_rule, rule_desc) FROM stdin;
+55109493-264a-444d-576b-55014bbf80c4	ttt1
+034c4fc8-1060-47ba-4004-4c52a99176e3	tttt21213
 \.
 
 
@@ -935,8 +960,18 @@ COPY rules (uuid_record, security_rule, rule_desc) FROM stdin;
 -- Data for Name: rules_data; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY rules_data (uuid_record, security_rule, rule_user, rule_action, rule_group) FROM stdin;
-c45e338d-88b9-44c7-82f8-3756ead3e2d9	c1900786-a548-4b74-55d4-ce79acd8fce1	admin	select	\N
+COPY rules_data (security_rule, rule_user, rule_action, rule_group, temp_label, temp_time) FROM stdin;
+034c4fc8-1060-47ba-4004-4c52a99176e3	admin	r	\N	\N	\N
+4293a022-259f-4879-9648-8e303202dd40	admin	r	\N	\N	\N
+c470aba9-5263-440f-a54a-0a3f825f01e2	admin	r	\N	t	2016-04-05 17:32:15.742372
+\.
+
+
+--
+-- Data for Name: tables; Type: TABLE DATA; Schema: acs; Owner: postgres
+--
+
+COPY tables (table_name, schema_name) FROM stdin;
 \.
 
 
@@ -945,11 +980,20 @@ c45e338d-88b9-44c7-82f8-3756ead3e2d9	c1900786-a548-4b74-55d4-ce79acd8fce1	admin	
 --
 
 COPY tokens (user_id, token, exp_date) FROM stdin;
-admin	22a4bf68-427d-4fd4-9300-d13782194d95	2016-03-25 16:25:30.963938
-admin	1dc7cb40-f0e0-453a-a0f4-4448e3026d52	2016-03-25 16:25:56.563638
-admin	9f845f28-1708-4a35-9b20-4d1d377ad8de	2016-03-25 18:05:37.634663
-admin	c95fc666-b01a-4eec-928b-719e7a213864	2016-03-25 18:07:44.347705
-admin	df91683c-9f7d-404c-855f-943dfeb366d8	2016-03-25 18:08:05.384191
+admin	fdf9fc87-b7c2-410f-a29b-9c670bd23975	2016-04-05 16:17:41.363847
+admin	2c8f02da-6499-4129-86fe-ec3ea93a07a4	2016-04-05 16:19:37.235334
+admin	8227676b-48a5-428c-9651-c2278ef4387c	2016-04-05 16:20:05.035224
+admin	b2c50c37-4842-4a06-a17b-e37cc94a3b4b	2016-04-05 16:20:23.531251
+admin	b2eef8ce-3ff7-49e0-96ac-fc34c875b421	2016-04-05 16:20:47.424261
+admin	cba92fba-3b43-4e47-9dd5-6cd20173d7f8	2016-04-05 16:21:06.62737
+admin	d236ec2d-cbd6-4082-81e8-c17a6f6aac51	2016-04-05 17:02:46.874174
+admin	1edbfde5-1ac5-464b-a641-6a186081140d	2016-04-05 17:05:21.360151
+admin	9dcb9b26-8223-463c-af68-6b8924db8858	2016-04-05 17:09:48.685564
+admin	87675cb0-e4c6-4c41-9bd2-d871ecd3d2a2	2016-04-05 17:24:33.892599
+admin	032ed51f-4146-4b7b-a2d2-e9ed1ce083d1	2016-04-05 17:25:40.983741
+admin	0f871643-32bb-4224-8971-a73ee5134e3a	2016-04-05 17:32:13.014088
+admin	6e704d9c-1015-4bdc-85b3-0018d3f195ed	2016-04-05 17:34:30.500193
+dima	1bc3fd0b-64a6-4880-8392-1f68904504fb	2016-04-05 17:35:24.077212
 \.
 
 
@@ -957,18 +1001,9 @@ admin	df91683c-9f7d-404c-855f-943dfeb366d8	2016-03-25 18:08:05.384191
 -- Data for Name: users; Type: TABLE DATA; Schema: acs; Owner: postgres
 --
 
-COPY users (uuid_record, id, pass, position_user, realname) FROM stdin;
-85bcc0a9-d474-4ff8-b4b5-4d376d2317ba	admin	$2a$06$QMnOhgv.upASLQ9TGU7NUupR2KRoW/qBZ2sFpkXz1UTKZ/rKNlZK2		Администратор
-\.
-
-
---
--- Data for Name: vcs_tables; Type: TABLE DATA; Schema: acs; Owner: postgres
---
-
-COPY vcs_tables (table_name, schema_name) FROM stdin;
-ttt	public
-fruits	public
+COPY users (id, pass, position_user, realname) FROM stdin;
+admin	$2a$06$2Lsdtn8kXrGJfKwcQdySyeWap4n9lem9Xi6uaV7kJFpW6oCYCas0e		Администратор
+dima	$2a$06$eq.E3Q/aidpx57BDVc3bquGIJXCXk6sIW8WDIUZFAJOzzr6aENxyO		Дмитрий
 \.
 
 
@@ -979,27 +1014,17 @@ SET search_path = public, pg_catalog;
 --
 
 COPY fruits (name, cnt, uuid_record) FROM stdin;
-23231	3	29ee9d10-21ee-49ec-83ee-c9e876da354a
-23231	3	1084da0c-f794-4693-9134-7a5877395e77
-23231	3	77ea5b25-148c-4e4d-8c1b-8715e4d651fe
-23231	3	7158edee-c518-4940-9e43-dfe91a33b4ef
-23231	3	29ee9d10-21ee-49ec-83ee-c9e876da354a
-23231	3	1084da0c-f794-4693-9134-7a5877395e77
-23231	3	77ea5b25-148c-4e4d-8c1b-8715e4d651fe
-23231	3	7158edee-c518-4940-9e43-dfe91a33b4ef
+apple	10	d99962fb-aea8-48f9-ae29-0cda9ac1eb0a
+lime	4	4e9c1cee-757e-4430-8c16-38e860316300
+potato	50	cc7af527-b70d-4036-8b75-e6b62a910d33
 \.
 
 
 --
--- Data for Name: test_protected; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: test; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
-1	name1	s	120	\N	964281b7-4f78-4845-ac42-61dde9a1067d
-5	name5	v	124	\N	48ad79ac-43aa-4553-a8d7-bf0cf6d9ab7d
-2	name2	s	150	\N	33373ff7-22c2-444d-9882-0ee5fa826f51
-4	name4	z	120	\N	610037ab-e53f-4163-b97a-6f9207d03efc
-3	name3	q	150	937dd1f3-70ea-479e-7b87-4afd1b380f06	2642ebdd-f0a1-4ad0-aa1a-a1c18dbf9aad
+COPY test (id, name_p, property, price, uuid_record) FROM stdin;
 \.
 
 
@@ -1008,16 +1033,12 @@ COPY test_protected (id, name_p, property, price, rule, uuid_record) FROM stdin;
 --
 
 COPY ttt (val, uuid_record) FROM stdin;
-100	d2756244-fc95-46f1-bc61-6c25d72f1123
-1	979c4dce-e346-4c09-ba49-5b6bc49c0f0a
-220	1ac8b2ee-846f-42d1-9c91-25fd579d12d0
-128	88d32a5f-12c6-4589-9c23-e74f1d8f0571
-135	c8b7f10b-3ccd-4432-b821-25bcd1d47e06
-100	d2756244-fc95-46f1-bc61-6c25d72f1123
-1	979c4dce-e346-4c09-ba49-5b6bc49c0f0a
-220	1ac8b2ee-846f-42d1-9c91-25fd579d12d0
-128	88d32a5f-12c6-4589-9c23-e74f1d8f0571
-135	c8b7f10b-3ccd-4432-b821-25bcd1d47e06
+10	93b685dd-e4e3-4b87-8352-c27425e9273c
+50	100ebb9d-0b18-4e50-ad0b-22b03e49d753
+100	229c4053-7497-4b8a-964f-a10870139c7e
+120	ed91a0f4-aae2-4803-841e-c828f24eb005
+200	e354a3c5-d637-4b0c-a901-2bf6ed51e78f
+220	38b5558a-ef8f-41e6-856d-8295542b5ddc
 \.
 
 
@@ -1032,7 +1053,7 @@ CREATE TRIGGER t_acs_fruits AFTER INSERT OR DELETE OR UPDATE ON fruits FOR EACH 
 -- Name: t_acs_test_protected; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER t_acs_test_protected AFTER INSERT OR DELETE OR UPDATE ON test_protected FOR EACH ROW EXECUTE PROCEDURE acs_tg_audit();
+CREATE TRIGGER t_acs_test_protected AFTER INSERT OR DELETE OR UPDATE ON test FOR EACH ROW EXECUTE PROCEDURE acs_tg_audit();
 
 
 --
@@ -1061,20 +1082,11 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
--- Name: test_protected; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE test_protected FROM PUBLIC;
-REVOKE ALL ON TABLE test_protected FROM postgres;
-
-
---
 -- Name: test; Type: ACL; Schema: public; Owner: postgres
 --
 
 REVOKE ALL ON TABLE test FROM PUBLIC;
 REVOKE ALL ON TABLE test FROM postgres;
-GRANT ALL ON TABLE test TO postgres;
 
 
 --
