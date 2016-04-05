@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"github.com/robfig/revel"
+	"database/sql"
+	"io/ioutil"
 )
 
 type App struct {
@@ -40,6 +42,23 @@ var TABLE_GROUP_USER string
 var TABLE_GROUPS_STRUCT string
 var TABLE_RULES string
 var TABLE_RULES_DATA string
+
+func InstallFunc(db *sql.DB) error {
+	sqlPath := "gocode/src/info/sql/"
+	files, _ := ioutil.ReadDir(sqlPath)
+	for _, file := range files {
+		b, err := ioutil.ReadFile(sqlPath + file.Name())
+		if err != nil {
+			return err
+		}
+		query := b[3:len(b)]
+		_, err = db.Exec(string(query))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func (c App) Auth(user string, pass string) revel.Result {
 	ret := make(map[string]string)
