@@ -20,7 +20,7 @@ accessSettings.controller('accountsCntl', function ($scope, Accounts) {
     });
 });
 
-accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts, Rules, ngDialog) {
+accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts, Rules, DataBase, ngDialog) {
     var account = $routeParams.account;
 
     $scope.createMode = (account != "!new");
@@ -36,6 +36,13 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
             $scope.showErrorMsg(data.error);
         } else {
             $scope.rules = data.rules||[];
+        }
+    });
+    DataBase.GetTables.go(function(data) {
+        if (data.error) {
+            $scope.showErrorMsg(data.error);
+        } else {
+            $scope.tables = data||[];
         }
     });
 
@@ -97,6 +104,24 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
     };
 });
 
-accessSettings.controller('accountAcsDlgCntl', function ($scope, ngDialog, Rules) {
+accessSettings.controller('accountAcsDlgCntl', function ($scope, ngDialog) {
+    $scope.tableSettings = [];
 
+    $scope.addTable = function() {
+        if ($scope.tableSelected && $scope.ruleSelected) {
+            var item = {};
+            item.table = $scope.tableSelected.name;
+            item.rule = $scope.ruleSelected.id;
+            item.ruleDesc = $scope.ruleSelected.desc;
+            $scope.tableSettings.push(item);
+        }
+    };
+
+    $scope.removeTable = function(idx) {
+        $scope.tableSettings.splice(idx, 1);
+    };
+
+    $scope.acceptSettings = function() {
+        ngDialog.close();
+    };
 });

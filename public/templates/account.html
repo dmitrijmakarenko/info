@@ -39,7 +39,7 @@
             <div class="desc">Временные метки</div>
             <div class="use-option">
                 <div class="checkbox">
-                    <input id="checkTemp" type="checkbox" ng-model="useTemp" name="check" value="yes" ng-click="useTemp()">
+                    <input id="checkTemp" type="checkbox" ng-model="useTemp" name="check" value="yes">
                     <label for="checkTemp">Использовать</label>
                 </div>
             </div>
@@ -71,14 +71,31 @@
 <script type="text/ng-template" id="accountAcsDlgCntl">
     <div class="acc-acs-dlg">
         <div class="settings-wrap">
-            <div>Таблица</div>
-            <div>Метка</div>
+            <div class="tbl">
+                <div class="row">
+                    <div class="desc">Таблица</div>
+                    <div class="cont">
+                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="tables" property="name" selected="tableSelected"></dropdown></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="desc">Метка</div>
+                    <div class="cont">
+                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="ruleSelected"></dropdown></div>
+                    </div>
+                </div>
+            </div>
+            <div class="link" ng-click="addTable()">Добавить</div>
         </div>
         <div class="items-wrap">
-
+            <div class="item" ng-repeat="settings in tableSettings">
+                <div class="table-name">{{settings.table}}</div>
+                <div class="rule-name">{{settings.ruleDesc}}</div>
+                <div class="link remove" ng-click="removeTable($index)">Удалить</div>
+            </div>
         </div>
         <div class="btn-bar">
-            <div button func="protect" text="Применить"></div>
+            <div button func="acceptSettings" text="Применить"></div>
             <div class="link" ng-click="closeThisDialog()">Отмена</div>
         </div>
     </div>

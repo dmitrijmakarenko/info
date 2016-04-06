@@ -60,6 +60,7 @@
     padding: 10px;
     border: 1px solid #bdbdbd;
     border-radius: 3px;
+    width: 440px;
 
     .desc {
       margin-bottom: 10px;
@@ -68,6 +69,10 @@
     .content {
       margin-top: 10px;
       height: 40px;
+      line-height: 40px;
+      .link {
+        line-height: 20px;
+      }
     }
     .title {
       margin-bottom: 10px;
@@ -87,6 +92,47 @@
       }
       .use-option {
         margin-bottom: 10px;
+      }
+    }
+  }
+}
+
+.acc-acs-dlg {
+  text-align: center;
+
+  .dropdown-wrap {
+    display: inline-block;
+  }
+  .btn-bar {
+    display: inline-block;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+
+  .settings-wrap {
+    background-color: #ffffff;
+    padding: 5px;
+    border: 1px solid #bdbdbd;
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .items-wrap {
+    text-align: left;
+    font-size: 0;
+    border-radius: 3px;
+    .item > * {
+      display: inline-block;
+    }
+    .item {
+      border: 1px solid #bdbdbd;
+      height: 30px;
+      line-height: 28px;
+      padding-left: 10px;
+      .table-name {
+        width: 115px;
+      }
+      .rule-name {
+        width: 210px;
       }
     }
   }
