@@ -1,0 +1,57 @@
+@import "custom";
+
+#rules-list {
+  padding: 15px 0 0 15px;
+
+  .rules {
+    margin: 20px 0 30px 0;
+
+    .item {
+      width: 200px;
+      height: 40px;
+      line-height: 40px;
+      padding-left: 10px;
+    }
+  }
+}
+
+#rules-edit {
+  padding: 15px 0 0 15px;
+
+  .options-wrap {
+
+    .settings-wrap {
+      .opt-desc {
+        margin: 10px 0 10px 0;
+      }
+
+      .dropdown-wrap {
+        height: 40px;
+      }
+
+      .select > * {
+        display: inline-block;
+      }
+      .select {
+
+        .item {
+          cursor: pointer;
+
+          &.selected {
+            cursor: default;
+            color: @basic-custom-color;
+          }
+          &.not-selected {
+
+          }
+        }
+      }
+    }
+    .add-opt {
+      margin: 10px 0 10px 0;
+    }
+    .option > * {
+      display: inline-block;
+    }
+  }
+}

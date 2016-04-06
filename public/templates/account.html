@@ -12,37 +12,59 @@
         <div class="row">
             <div class="desc">Должность</div><div class="cont"><input type="text" ng-model="position"></div>
         </div>
+    </div>
 
-        <div>
-            <div>Метки безопасности:</div>
-            <div class="setup-table">
-                <div>При добавлении записей</div>
-                <div>
-                    <div class="radio-item">
-                        <input id="all" type="radio" ng-model="ruleTable" value="all" ng-click="tableOnSelect('all')">
-                        <label for="all">Для всех таблиц</label>
-                    </div>
-                    <div ng-show="tableAll">
-                        Правила
-                    </div>
-                    <div class="radio-item">
-                        <input id="some" type="radio" ng-model="ruleTable" value="some" ng-click="tableOnSelect('some')">
-                        <label for="some">Для нескольких таблиц</label>
-                    </div>
-                    <div ng-show="!tableAll">
-                        <div class="link" ng-click="showAccessSettingsDlg()">Настроить</div>
-                    </div>
+    <div class="security-label">
+        <div class="title">Метки безопасности:</div>
+        <div class="setup-table">
+            <div class="desc">Добавление записей</div>
+            <div>
+                <div class="radio-item">
+                    <input id="allTable" type="radio" ng-model="ruleTable" value="all" ng-click="tableOnSelect('all')">
+                    <label for="allTable">Для всех таблиц</label>
+                </div>
+                <div class="radio-item">
+                    <input id="someTable" type="radio" ng-model="ruleTable" value="some" ng-click="tableOnSelect('some')">
+                    <label for="someTable">Для нескольких таблиц</label>
+                </div>
+                <div class="content" ng-show="tableAll">
+                    <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="tableRuleSelected"></dropdown></div>
+                </div>
+                <div class="content" ng-show="!tableAll">
+                    <div class="link" ng-click="showAccessSettingsDlg()">Настроить</div>
                 </div>
             </div>
-            <div class="setup-temp">
-                <div>Использовать временные метки</div>
+        </div>
+        <div class="setup-temp">
+            <div class="desc">Временные метки</div>
+            <div class="use-option">
+                <div class="checkbox">
+                    <input id="checkTemp" type="checkbox" ng-model="useTemp" name="check" value="yes" ng-click="useTemp()">
+                    <label for="checkTemp">Использовать</label>
+                </div>
+            </div>
+            <div ng-show="useTemp">
+                <div class="radio-item">
+                    <input id="allTemp" type="radio" ng-model="ruleTemp" value="all" ng-click="tempOnSelect('all')">
+                    <label for="allTemp">Для всех таблиц</label>
+                </div>
+                <div class="radio-item">
+                    <input id="someTemp" type="radio" ng-model="ruleTemp" value="some" ng-click="tempOnSelect('some')">
+                    <label for="someTemp">Для нескольких таблиц</label>
+                </div>
+                <div class="content" ng-show="tepmAll">
+                    Правила
+                </div>
+                <div class="content" ng-show="!tepmAll">
+                    <div class="link" ng-click="showAccessSettingsDlg()">Настроить</div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="btn-bar">
-            <div button func="saveSettings" text="Сохранить" loading="true"></div>
-            <div button ng-show="createMode" func="deleteAccount" text="Удалить" clazz="remove"></div>
-        </div>
+    <div class="btn-bar">
+        <div button func="saveSettings" text="Сохранить" loading="true"></div>
+        <div button ng-show="createMode" func="deleteAccount" text="Удалить" clazz="remove"></div>
     </div>
 </div>
 

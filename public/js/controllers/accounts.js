@@ -20,13 +20,24 @@ accessSettings.controller('accountsCntl', function ($scope, Accounts) {
     });
 });
 
-accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts, ngDialog) {
+accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts, Rules, ngDialog) {
     var account = $routeParams.account;
 
     $scope.createMode = (account != "!new");
 
     $scope.tableAll = true;
     $scope.ruleTable = "all";
+
+    $scope.tepmAll = true;
+    $scope.ruleTemp = "all";
+
+    Rules.List.go(function(data) {
+        if (data.error) {
+            $scope.showErrorMsg(data.error);
+        } else {
+            $scope.rules = data.rules||[];
+        }
+    });
 
     if (account != "!new") {
         Accounts.Get.go({id: account}, function(data) {
@@ -43,6 +54,9 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
 
     $scope.tableOnSelect = function(v) {
         $scope.tableAll = (v == "all");
+    };
+    $scope.tempOnSelect = function(v) {
+        $scope.tepmAll = (v == "all");
     };
 
     $scope.showAccessSettingsDlg = function() {

@@ -17,10 +17,8 @@
   }
 }
 
-#accounts-edit,
-#groups-edit,
-#rules-edit {
-  padding: 15px 0 0 15px;
+#groups-edit {
+  padding: 20px 0 0 20px;
 
   .users {
     margin: 30px 0 20px 0;
@@ -48,6 +46,47 @@
       }
       .item:hover {
         background-color: #E9E9EC;
+      }
+    }
+  }
+}
+
+#accounts-edit {
+  padding: 20px 0 0 20px;
+
+  .security-label {
+    margin: 0 0 0 0;
+    background-color: #ffffff;
+    padding: 10px;
+    border: 1px solid #bdbdbd;
+    border-radius: 3px;
+
+    .desc {
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+    .content {
+      margin-top: 10px;
+      height: 40px;
+    }
+    .title {
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .radio-item {
+      display: inline-block;
+    }
+    .setup-table {
+      margin-bottom: 10px;
+    }
+    .setup-temp {
+
+      .use-option > *{
+        display: inline-block;
+      }
+      .use-option {
+        margin-bottom: 10px;
       }
     }
   }
@@ -91,61 +130,6 @@
   }
 }
 
-#rules-edit {
-
-  .options-wrap {
-
-    .settings-wrap {
-      .opt-desc {
-        margin: 10px 0 10px 0;
-      }
-
-      .dropdown-wrap {
-        height: 40px;
-      }
-
-      .select > * {
-        display: inline-block;
-      }
-      .select {
-
-        .item {
-          cursor: pointer;
-
-          &.selected {
-            cursor: default;
-            color: @basic-custom-color;
-          }
-          &.not-selected {
-
-          }
-        }
-      }
-    }
-    .add-opt {
-      margin: 10px 0 10px 0;
-    }
-    .option > * {
-      display: inline-block;
-    }
-  }
-}
-
-#rules-list {
-  padding: 15px 0 0 15px;
-
-  .rules {
-    margin: 20px 0 30px 0;
-
-    .item {
-      width: 200px;
-      height: 40px;
-      line-height: 40px;
-      padding-left: 10px;
-    }
-  }
-}
-
 .add-parent-dlg {
   text-align: center;
 
@@ -157,8 +141,4 @@
     overflow: hidden;
     margin: 0 auto;
   }
-}
-
-#test-page {
-  padding: 20px 0 0 20px;
 }
