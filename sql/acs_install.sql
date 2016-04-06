@@ -18,6 +18,15 @@ CREATE TABLE IF NOT EXISTS acs.users
 	position_user text,
 	realname text
 );
+--user rule
+CREATE TABLE IF NOT EXISTS acs.user_rule
+(
+	user_id text NOT NULL,
+	table_name text,
+	security_label uuid,
+	temp_label text,
+	temp_time interval
+);
 --groups
 CREATE TABLE IF NOT EXISTS acs.groups
 (
