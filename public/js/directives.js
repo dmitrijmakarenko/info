@@ -29,6 +29,25 @@ accessSettingsDirectives.directive('informer', function () {
     }
 });
 
+accessSettingsDirectives.directive('spinner', function () {
+    return {
+        controller: function($scope, spinnerControl) {
+            $scope.show = false;
+            $scope.spinnerControl = spinnerControl;
+
+            $scope.$watch('spinnerControl.spinnerShow', toggle);
+            function toggle() {
+                $scope.show = spinnerControl.spinnerShow;
+            }
+        },
+        template:
+        '<div class="loading" ng-show="show">' +
+            '<div class="shade"></div>' +
+            '<img src="/public/img/loading.gif" alt="Загрузка..." class="spinner"/>' +
+        '</div>'
+    }
+});
+
 accessSettingsDirectives.directive('leftpanel', function () {
     return {
         controller: function($scope, $location, $browser) {

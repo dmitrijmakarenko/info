@@ -19,6 +19,18 @@ accessSettingsServices.factory('informerControl', function() {
     }
 });
 
+accessSettingsServices.factory('spinnerControl', function() {
+    return {
+        spinnerShow: false,
+        showSpinner: function() {
+            this.spinnerShow = true;
+        },
+        hideSpinner: function() {
+            this.spinnerShow = false;
+        }
+    }
+});
+
 accessSettingsServices.factory('Entity', ['$resource',
     function($resource) {
         return {
