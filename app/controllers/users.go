@@ -36,8 +36,8 @@ type UserData struct {
 	Position string `json:"position"`
 	TableRule string `json:"tableRule"`
 	TableRules []UsersRuleItem `json:"tableRules"`
-	TempRule string `json:"tempRule"`
-	TempRules []UsersRuleItem `json:"tempRules"`
+	TempRule int `json:"tempRule"`
+	TempRules []UsersTempItem `json:"tempRules"`
 	Error string `json:"error"`
 }
 
@@ -48,8 +48,8 @@ type UserSettings struct {
 	Position string `json:"position"`
 	TableRule string `json:"tableRule"`
 	TableRules []UsersRuleItem `json:"tableRules"`
-	TempRule string `json:"tempRule"`
-	TempRules []UsersRuleItem `json:"tempRules"`
+	TempRule int `json:"tempRule"`
+	TempRules []UsersTempItem `json:"tempRules"`
 }
 
 func (c UsersCntl) List() revel.Result {
@@ -145,7 +145,7 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
-	//update user rules
+	//table rules
 	_, err = DB.Exec("DELETE FROM acs.user_rule WHERE user_id=$1", settings.Id)
 	if settings.TableRule != "" {
 		_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, security_label) VALUES($1, '!all', $2)", settings.Id, settings.TableRule)
@@ -158,6 +158,15 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
+	}
+	//temp rules
+	if settings.TempRule != 0 {
+		_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, temp_label, temp_time) VALUES($1, '!all', 'yes', $2)", settings.Id, settings.TempRule * 60)
+	}
+	if settings.TempRules != nil {
+		for _, s := range settings.TempRules {
+			_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, temp_label, temp_time) VALUES($1, $2, 'yes', $3)", settings.Id, s.Table, s.Time * 60)
+		}
 	}
 	return c.RenderJson(ret)
 }

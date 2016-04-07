@@ -148,7 +148,7 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
             compileSettings.tableRules = $scope.tableRules;
         }
         if($scope.tepmAll && $scope.timeSelected && $scope.timeSelected.time) {
-            compileSettings.tempRule = $scope.tableRuleSelected.id;
+            compileSettings.tempRule = $scope.timeSelected.time;
         } else if (!$scope.tepmAll && $scope.tempRules && $scope.tempRules.length > 0) {
             compileSettings.tempRules = $scope.tempRules;
         }
