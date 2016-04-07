@@ -5,7 +5,9 @@ accessSettings.controller('groupsCntl', function ($scope, Groups) {
         window.location = "#/groups/" + group;
     };
 
+    $scope.showSpinner();
     Groups.List.go(function(data) {
+        $scope.hideSpinner();
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {
@@ -23,7 +25,9 @@ accessSettings.controller('groupCntl', function ($scope, $routeParams, ngDialog,
     $scope.members = [];
     $scope.users = [];
 
+    $scope.showSpinner();
     Groups.Data.go(function(data) {
+        $scope.hideSpinner();
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {

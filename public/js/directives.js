@@ -32,16 +32,16 @@ accessSettingsDirectives.directive('informer', function () {
 accessSettingsDirectives.directive('spinner', function () {
     return {
         controller: function($scope, spinnerControl) {
-            $scope.show = false;
+            $scope.spinnerControlShow = false;
             $scope.spinnerControl = spinnerControl;
 
             $scope.$watch('spinnerControl.spinnerShow', toggle);
             function toggle() {
-                $scope.show = spinnerControl.spinnerShow;
+                $scope.spinnerControlShow = spinnerControl.spinnerShow;
             }
         },
         template:
-        '<div class="loading" ng-show="show">' +
+        '<div class="spinner-loading" ng-show="spinnerControlShow">' +
             '<div class="shade"></div>' +
             '<img src="/public/img/loading.gif" alt="Загрузка..." class="spinner"/>' +
         '</div>'

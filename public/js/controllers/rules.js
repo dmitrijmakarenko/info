@@ -4,7 +4,9 @@ accessSettings.controller('rulesCntl', function ($scope, Rules) {
         window.location = "#/rules/" + rule;
     };
 
+    $scope.showSpinner();
     Rules.List.go(function(data) {
+        $scope.hideSpinner();
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {
@@ -28,7 +30,9 @@ accessSettings.controller('ruleCntl', function ($scope, $routeParams, Rules) {
         {operation: "w", text: "Изменение"}
     ];
 
+    $scope.showSpinner();
     Rules.Data.go(function(data) {
+        $scope.hideSpinner();
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {

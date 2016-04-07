@@ -4,7 +4,9 @@ accessSettings.controller('accountsCntl', function ($scope, Accounts) {
         window.location = "#/accounts/" + account;
     };
 
+    $scope.showSpinner();
     Accounts.List.go(function(data) {
+        $scope.hideSpinner();
         $scope.accounts = [];
         if (data.error) {
             $scope.showErrorMsg(data.error);
@@ -35,6 +37,7 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
     $scope.tableRules = [];
     $scope.tableSettings = [];
 
+    $scope.showSpinner();
     Rules.List.go(function(data) {
         if (data.error) {
             $scope.showErrorMsg(data.error);
@@ -46,6 +49,7 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
         }
     });
     DataBase.GetTables.go(function(data) {
+        if (account == "!new") $scope.hideSpinner();
         if (data.error) {
             $scope.showErrorMsg(data.error);
         } else {
@@ -55,6 +59,7 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
 
     if (account != "!new") {
         Accounts.Get.go({id: account}, function(data) {
+            $scope.hideSpinner();
             //console.log("get user", data);
             if (data.error) {
                 $scope.showErrorMsg(data.error);
