@@ -1,19 +1,38 @@
 @import "custom";
 
-#accounts-list,
-#groups-list {
-  padding: 15px 0 0 15px;
+#accounts-list {
+  padding: 20px 0 0 20px;
 
-  .list-accounts,
+  .list-accounts {
+    width: 250px;
+    margin: 20px 0 30px 0;
+  }
+  .item {
+    padding: 10px;
+    width: 230px;
+    height: 25px;
+    line-height: 25px;
+    .name {
+      font-size: 15px;
+    }
+  }
+}
+
+#groups-list {
+  padding: 20px 0 0 20px;
+
   .list-groups {
-    width: 210px;
+    width: 250px;
     margin: 20px 0 30px 0;
 
     .item {
-      padding: 5px;
-      width: 200px;
-      height: 30px;
-      line-height: 30px;
+      padding: 10px;
+      width: 230px;
+      height: 25px;
+      line-height: 25px;
+      .name {
+        font-size: 15px;
+      }
     }
   }
 }
@@ -122,11 +141,11 @@
     text-align: left;
     font-size: 0;
     border-radius: 3px;
+    background: #ffffff;
     .item > * {
       display: inline-block;
     }
     .item {
-      border: 1px solid #bdbdbd;
       height: 30px;
       line-height: 28px;
       padding-left: 10px;
@@ -134,6 +153,9 @@
         width: 115px;
       }
       .rule-name {
+        width: 210px;
+      }
+      .time {
         width: 210px;
       }
     }

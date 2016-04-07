@@ -2,7 +2,7 @@
     <div>
         <div class="list-accounts items-list">
             <div class="item" ng-repeat="account in accounts" ng-click="go(account.id)">
-                <div>{{account.name}}</div>
+                <div class="name">{{account.name}}</div>
             </div>
         </div>
         <div class="add-account link" ng-click="go('!new')">Создать</div>

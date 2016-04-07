@@ -37,6 +37,19 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
     $scope.tableRules = [];
     $scope.tableSettings = [];
 
+    $scope.tempRules = [];
+    $scope.tempSettings = [];
+
+    $scope.timeSettings = [
+        {time: -1, text: "Неограниченно"},
+        {time: 60, text: "Один час"},
+        {time: 120, text: "Два часа"},
+        {time: 180, text: "Три часа"},
+        {time: 360, text: "Шесть часов"},
+        {time: 720, text: "Двеннадцать часов"},
+        {time: 1440, text: "Один день"}
+    ];
+
     $scope.showSpinner();
     Rules.List.go(function(data) {
         if (data.error) {
@@ -112,6 +125,17 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
         });
     };
 
+    $scope.showTempAccessSettingsDlg = function() {
+        $scope.tempRules = [];
+        ngDialog.open({
+            template: 'accountAcsTmpDlgCntl',
+            controller: 'accountAcsTempDlgCntl',
+            disableAnimation: true,
+            showClose: false,
+            scope: $scope
+        });
+    };
+
     $scope.saveSettings = function() {
         var compileSettings = {};
         compileSettings.id = $scope.id;
@@ -122,6 +146,11 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
             compileSettings.tableRule = $scope.tableRuleSelected.id;
         } else if (!$scope.tableAll && $scope.tableRules && $scope.tableRules.length > 0) {
             compileSettings.tableRules = $scope.tableRules;
+        }
+        if($scope.tepmAll && $scope.timeSelected && $scope.timeSelected.time) {
+            compileSettings.tempRule = $scope.tableRuleSelected.id;
+        } else if (!$scope.tepmAll && $scope.tempRules && $scope.tempRules.length > 0) {
+            compileSettings.tempRules = $scope.tempRules;
         }
         Accounts.Update.go({id: account, settings: JSON.stringify(compileSettings)}, function(data) {
             if (data.error) {
@@ -147,11 +176,11 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
 
 accessSettings.controller('accountAcsDlgCntl', function ($scope, ngDialog) {
     $scope.addTable = function() {
-        if ($scope.tableSelected && $scope.ruleSelected) {
+        if ($scope.tableSelected && $scope.dlgRuleSelected) {
             var item = {};
             item.table = $scope.tableSelected.name;
-            item.rule = $scope.ruleSelected.id;
-            item.ruleDesc = $scope.ruleSelected.desc;
+            item.rule = $scope.dlgRuleSelected.id;
+            item.ruleDesc = $scope.dlgRuleSelected.desc;
             $scope.tableSettings.push(item);
         }
     };
@@ -163,6 +192,29 @@ accessSettings.controller('accountAcsDlgCntl', function ($scope, ngDialog) {
     $scope.acceptSettings = function() {
         $scope.tableSettings.forEach(function(item) {
             $scope.tableRules.push({table: item.table, rule: item.rule});
+        });
+        ngDialog.close();
+    };
+});
+
+accessSettings.controller('accountAcsTempDlgCntl', function ($scope, ngDialog) {
+    $scope.addTable = function() {
+        if ($scope.tableSelected && $scope.dlgTimeSelected) {
+            var item = {};
+            item.table = $scope.tableSelected.name;
+            item.time = $scope.dlgTimeSelected.time;
+            item.timeText = $scope.dlgTimeSelected.text;
+            $scope.tempSettings.push(item);
+        }
+    };
+
+    $scope.removeTable = function(idx) {
+        $scope.tempSettings.splice(idx, 1);
+    };
+
+    $scope.acceptSettings = function() {
+        $scope.tempSettings.forEach(function(item) {
+            $scope.tempRules.push({table: item.table, time: item.time});
         });
         ngDialog.close();
     };

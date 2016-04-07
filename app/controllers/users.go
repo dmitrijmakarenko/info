@@ -24,6 +24,11 @@ type UsersRuleItem struct {
 	Rule string `json:"rule"`
 }
 
+type UsersTempItem struct {
+	Table string `json:"table"`
+	Time int `json:"time"`
+}
+
 type UserData struct {
 	Id string `json:"id"`
 	Name string `json:"name"`
@@ -31,6 +36,8 @@ type UserData struct {
 	Position string `json:"position"`
 	TableRule string `json:"tableRule"`
 	TableRules []UsersRuleItem `json:"tableRules"`
+	TempRule string `json:"tempRule"`
+	TempRules []UsersRuleItem `json:"tempRules"`
 	Error string `json:"error"`
 }
 
@@ -41,6 +48,8 @@ type UserSettings struct {
 	Position string `json:"position"`
 	TableRule string `json:"tableRule"`
 	TableRules []UsersRuleItem `json:"tableRules"`
+	TempRule string `json:"tempRule"`
+	TempRules []UsersRuleItem `json:"tempRules"`
 }
 
 func (c UsersCntl) List() revel.Result {

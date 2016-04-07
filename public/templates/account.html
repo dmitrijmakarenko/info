@@ -53,10 +53,10 @@
                     <label for="someTemp">Для нескольких таблиц</label>
                 </div>
                 <div class="content" ng-show="tepmAll">
-                    Правила
+                    <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="timeSettings" property="text" selected="timeSelected"></dropdown></div>
                 </div>
                 <div class="content" ng-show="!tepmAll">
-                    <div class="link" ng-click="showAccessSettingsDlg()">Настроить</div>
+                    <div class="link" ng-click="showTempAccessSettingsDlg()">Настроить</div>
                 </div>
             </div>
         </div>
@@ -81,7 +81,7 @@
                 <div class="row">
                     <div class="desc">Метка</div>
                     <div class="cont">
-                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="ruleSelected"></dropdown></div>
+                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="dlgRuleSelected"></dropdown></div>
                     </div>
                 </div>
             </div>
@@ -91,6 +91,39 @@
             <div class="item" ng-repeat="settings in tableSettings">
                 <div class="table-name">{{settings.table}}</div>
                 <div class="rule-name">{{settings.ruleDesc}}</div>
+                <div class="link remove" ng-click="removeTable($index)">Удалить</div>
+            </div>
+        </div>
+        <div class="btn-bar">
+            <div button func="acceptSettings" text="Применить"></div>
+            <div class="link" ng-click="closeThisDialog()">Отмена</div>
+        </div>
+    </div>
+</script>
+
+<script type="text/ng-template" id="accountAcsTmpDlgCntl">
+    <div class="acc-acs-dlg">
+        <div class="settings-wrap">
+            <div class="tbl">
+                <div class="row">
+                    <div class="desc">Таблица</div>
+                    <div class="cont">
+                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="tables" property="name" selected="tableSelected"></dropdown></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="desc">Время</div>
+                    <div class="cont">
+                        <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="timeSettings" property="text" selected="dlgTimeSelected"></dropdown></div>
+                    </div>
+                </div>
+            </div>
+            <div class="link" ng-click="addTable()">Добавить</div>
+        </div>
+        <div class="items-wrap">
+            <div class="item" ng-repeat="settings in tempSettings">
+                <div class="table-name">{{settings.table}}</div>
+                <div class="time">{{settings.timeText}}</div>
                 <div class="link remove" ng-click="removeTable($index)">Удалить</div>
             </div>
         </div>
