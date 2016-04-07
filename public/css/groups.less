@@ -1,0 +1,108 @@
+@import "custom";
+
+#groups-list {
+  padding: 20px 0 0 20px;
+
+  .list-groups {
+    width: 250px;
+    margin: 20px 0 30px 0;
+
+    .item {
+      padding: 10px;
+      width: 230px;
+      height: 25px;
+      line-height: 25px;
+      .name {
+        font-size: 15px;
+      }
+    }
+  }
+}
+
+#groups-edit {
+  padding: 20px 0 0 20px;
+
+  .users {
+    width: 600px;
+    margin: 30px 0 20px 0;
+    background: #ffffff;
+    border: 1px solid #bdbdbd;
+    border-radius: 3px;
+    padding: 5px;
+    font-size: 0;
+
+    .users-group,
+    .users-other {
+      display: inline-block;
+      vertical-align: top;
+      width: 300px;
+
+      .title {
+        font-weight: bold;
+        height: 30px;
+        line-height: 30px;
+        border-bottom: 1px solid #bdbdbd;
+      }
+
+      .list {
+        margin-top: 5px;
+        padding-right: 10px;
+      }
+      .item {
+        cursor: pointer;
+        height: 20px;
+        line-height: 20px;
+        border-radius: 3px;
+      }
+      .item:hover {
+        background-color: #EDF4FB;
+      }
+    }
+  }
+  .hierarchy {
+    .title {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .parents-wrap {
+      font-size: 0;
+      margin-bottom: 10px;
+
+      .parent-item > * {
+        display: inline-block;
+      }
+      .parent-item {
+        background-color: #ffffff;
+        line-height: 20px;
+        height: 20px;
+        padding: 5px 0 5px 10px;
+
+        .name {
+          font-size: 14px;
+          width: 100px;
+        }
+        .level {
+          font-size: 14px;
+          font-style: italic;
+          width: 50px;
+        }
+        .rm {
+
+        }
+      }
+    }
+  }
+}
+
+.add-parent-dlg {
+  text-align: center;
+
+  .dropdown-wrap {
+    display: inline-block;
+  }
+  .btn-bar {
+    display: inline-block;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+}

@@ -79,6 +79,7 @@ func (c UsersCntl) List() revel.Result {
 func (c UsersCntl) Get(id string) revel.Result {
 	var ret UserData
 	var ruleTable string
+	var tempTime int
 
 	rows, err := DB.Query("SELECT realname, position_user FROM "+TABLE_USERS+" WHERE id=$1", id)
 	if err != nil {
@@ -99,11 +100,15 @@ func (c UsersCntl) Get(id string) revel.Result {
 		}
 	}
 	//get rules settings
-	_ = DB.QueryRow("SELECT security_label FROM acs.user_rule WHERE user_id=$1 AND table_name='!all'", id).Scan(&ruleTable)
+	_ = DB.QueryRow("SELECT security_rule FROM acs.user_rules WHERE user_id=$1 AND temp_use=false AND table_all=true", id).Scan(&ruleTable)
+	if err != nil {
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
 	if ruleTable != "" {
 		ret.TableRule = ruleTable
 	} else {
-		rows, err := DB.Query("SELECT table_name, security_label FROM acs.user_rule WHERE user_id=$1", id)
+		rows, err := DB.Query("SELECT table_name, security_rule FROM acs.user_rules WHERE user_id=$1 AND temp_use=false AND table_all=false", id)
 		if err != nil {
 			ret.Error = err.Error()
 			return c.RenderJson(ret)
@@ -120,6 +125,35 @@ func (c UsersCntl) Get(id string) revel.Result {
 				s.Rule = rule
 				s.Table = table
 				ret.TableRules = append(ret.TableRules, s)
+			}
+		}
+	}
+	//get temp rules
+	_ = DB.QueryRow("SELECT EXTRACT(epoch FROM temp_time)/60 AS time FROM acs.user_rules WHERE user_id=$1 AND temp_use=true AND table_all=true", id).Scan(&tempTime)
+	if err != nil {
+		ret.Error = err.Error()
+		return c.RenderJson(ret)
+	}
+	if tempTime != 0 {
+		ret.TempRule = tempTime
+	} else {
+		rows, err := DB.Query("SELECT table_name, EXTRACT(epoch FROM temp_time)/60 AS time FROM acs.user_rules WHERE user_id=$1 AND temp_use=true AND table_all=false", id)
+		if err != nil {
+			ret.Error = err.Error()
+			return c.RenderJson(ret)
+		}
+		for rows.Next() {
+			var table string
+			var time int
+			err := rows.Scan(&table, &time)
+			if err != nil {
+				ret.Error = err.Error()
+				return c.RenderJson(ret)
+			} else {
+				s := UsersTempItem{}
+				s.Time = time
+				s.Table = table
+				ret.TempRules = append(ret.TempRules, s)
 			}
 		}
 	}
@@ -146,13 +180,13 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 		return c.RenderJson(ret)
 	}
 	//table rules
-	_, err = DB.Exec("DELETE FROM acs.user_rule WHERE user_id=$1", settings.Id)
+	_, err = DB.Exec("DELETE FROM acs.user_rules WHERE user_id=$1", settings.Id)
 	if settings.TableRule != "" {
-		_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, security_label) VALUES($1, '!all', $2)", settings.Id, settings.TableRule)
+		_, err = DB.Exec("INSERT INTO acs.user_rules(user_id, table_all, security_rule) VALUES($1, true, $2)", settings.Id, settings.TableRule)
 	}
 	if settings.TableRules != nil {
 		for _, s := range settings.TableRules {
-			_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, security_label) VALUES($1, $2, $3)", settings.Id, s.Table, s.Rule)
+			_, err = DB.Exec("INSERT INTO acs.user_rules(user_id, table_name, security_rule) VALUES($1, $2, $3)", settings.Id, s.Table, s.Rule)
 		}
 	}
 	if err != nil {
@@ -161,11 +195,11 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 	}
 	//temp rules
 	if settings.TempRule != 0 {
-		_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, temp_label, temp_time) VALUES($1, '!all', 'yes', $2)", settings.Id, settings.TempRule * 60)
+		_, err = DB.Exec("INSERT INTO acs.user_rules(user_id, table_all, temp_use, temp_time) VALUES($1, true, true, $2)", settings.Id, settings.TempRule * 60)
 	}
 	if settings.TempRules != nil {
 		for _, s := range settings.TempRules {
-			_, err = DB.Exec("INSERT INTO acs.user_rule(user_id, table_name, temp_label, temp_time) VALUES($1, $2, 'yes', $3)", settings.Id, s.Table, s.Time * 60)
+			_, err = DB.Exec("INSERT INTO acs.user_rules(user_id, table_name, temp_use, temp_time) VALUES($1, $2, true, $3)", settings.Id, s.Table, s.Time * 60)
 		}
 	}
 	return c.RenderJson(ret)

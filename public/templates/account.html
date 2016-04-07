@@ -24,8 +24,8 @@
                     <label for="allTable">Для всех таблиц</label>
                 </div>
                 <div class="radio-item">
-                    <input id="someTable" type="radio" ng-model="ruleTable" value="some" ng-click="tableOnSelect('some')">
-                    <label for="someTable">Для нескольких таблиц</label>
+                    <input id="customTable" type="radio" ng-model="ruleTable" value="custom" ng-click="tableOnSelect('custom')">
+                    <label for="customTable">Настроить отдельно</label>
                 </div>
                 <div class="content" ng-show="tableAll">
                     <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="rules" property="desc" selected="tableRuleSelected"></dropdown></div>
@@ -49,8 +49,8 @@
                     <label for="allTemp">Для всех таблиц</label>
                 </div>
                 <div class="radio-item">
-                    <input id="someTemp" type="radio" ng-model="ruleTemp" value="some" ng-click="tempOnSelect('some')">
-                    <label for="someTemp">Для нескольких таблиц</label>
+                    <input id="customTemp" type="radio" ng-model="ruleTemp" value="custom" ng-click="tempOnSelect('custom')">
+                    <label for="customTemp">Настроить отдельно</label>
                 </div>
                 <div class="content" ng-show="tepmAll">
                     <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="timeSettings" property="text" selected="timeSelected"></dropdown></div>

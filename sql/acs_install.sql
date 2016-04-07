@@ -19,12 +19,13 @@ CREATE TABLE IF NOT EXISTS acs.users
 	realname text
 );
 --user rule
-CREATE TABLE IF NOT EXISTS acs.user_rule
+CREATE TABLE IF NOT EXISTS acs.user_rules
 (
 	user_id text NOT NULL,
 	table_name text,
-	security_label uuid,
-	temp_label text,
+	table_all boolean DEFAULT false,
+	security_rule uuid,
+	temp_use boolean DEFAULT false,
 	temp_time interval
 );
 --groups

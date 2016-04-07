@@ -24,7 +24,8 @@ accessSettings.controller('accountsCntl', function ($scope, Accounts) {
 
 accessSettings.controller('accountCntl', function ($scope, $routeParams, Accounts, Rules, DataBase, ngDialog) {
     var account = $routeParams.account,
-        descRuleById = {};
+        descRuleById = {},
+        textByTime = {};
 
     $scope.createMode = (account != "!new");
 
@@ -49,6 +50,9 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
         {time: 720, text: "Двеннадцать часов"},
         {time: 1440, text: "Один день"}
     ];
+    $scope.timeSettings.forEach(function(item) {
+        textByTime[item.time] = item.text;
+    });
 
     $scope.showSpinner();
     Rules.List.go(function(data) {
@@ -92,11 +96,31 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
                 } else if (data.tableRules && data.tableRules.length > 0) {
                     $scope.tableSettings = [];
                     $scope.tableAll = false;
-                    $scope.ruleTable = "some";
+                    $scope.ruleTable = "custom";
                     data.tableRules.forEach(function(item) {
                         var itemSet = item;
                         itemSet.ruleDesc = $scope.getDescRule(item.rule);
                         $scope.tableSettings.push(itemSet);
+                    });
+                }
+                if (data.tempRule != 0 || (data.tempRules && data.tempRules.length > 0) ) $scope.useTemp = true;
+                if (data.tempRule != 0) {
+                    $scope.tepmAll = true;
+                    $scope.ruleTemp = "all";
+                    $scope.timeSettings.forEach(function(item) {
+                        if (item.time == data.tempRule) {
+                            $scope.timeSelected = {};
+                            $scope.timeSelected = item;
+                        }
+                    });
+                } else if (data.tempRules && data.tempRules.length > 0) {
+                    $scope.tempSettings = [];
+                    $scope.tepmAll = false;
+                    $scope.ruleTemp = "custom";
+                    data.tempRules.forEach(function(item) {
+                        var itemSet = item;
+                        itemSet.timeText = $scope.getTextTime(item.time);
+                        $scope.tempSettings.push(itemSet);
                     });
                 }
             }
@@ -105,6 +129,9 @@ accessSettings.controller('accountCntl', function ($scope, $routeParams, Account
 
     $scope.getDescRule = function(id) {
         return descRuleById[id]||"";
+    };
+    $scope.getTextTime = function(time) {
+        return textByTime[time]||"";
     };
 
     $scope.tableOnSelect = function(v) {
