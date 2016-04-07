@@ -199,7 +199,7 @@ func (c DataCntl) Add(params string) revel.Result {
 	revel.INFO.Println("add data row", uuidRecord)
 
 	//store rule
-	_, err = DB.Query("SELECT acs_insert_record($1, $2)", uuidRecord, user)
+	_, err = DB.Query("SELECT acs_insert_record($1, $2, $3)", uuidRecord, user, p.Table)
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
