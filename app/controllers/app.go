@@ -89,7 +89,7 @@ func (c App) GetEntities() revel.Result {
 	return c.RenderJson(entityList())
 }
 
-func (c App) GetEntity(id string) revel.Result {
+func (c App) GetTable(id string) revel.Result {
 	ret := make(map[string]string)
 	data, err := entityGet(id)
 	if err != nil {

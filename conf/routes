@@ -5,9 +5,9 @@
 module:testrunner
 
 GET     /                                       App.Index
-POST    /entities                               App.GetEntities
-POST    /get_entity                             App.GetEntity
-POST    /tables                                 App.GetTables
+POST    /tables/list                            App.GetTables
+POST    /tables/get                             App.GetTable
+POST    /entities/list                          App.GetEntities
 POST    /views                                  App.GetViews
 POST    /protect                                App.Protect
 POST    /auth                                   App.Auth

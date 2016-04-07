@@ -1,5 +1,5 @@
-accessSettings.controller('tablesCntl', function ($scope, Entity) {
-    Entity.List.go(function(data) {
+accessSettings.controller('tablesCntl', function ($scope, Tables) {
+    Tables.List.go(function(data) {
         $scope.entities = data;
     });
 
@@ -9,12 +9,11 @@ accessSettings.controller('tablesCntl', function ($scope, Entity) {
 
 });
 
-accessSettings.controller('tableCntl', function ($scope, $routeParams, ngDialog, Entity) {
-    //$scope.loading = true;
+accessSettings.controller('tableCntl', function ($scope, $routeParams, ngDialog, Tables) {
     var table = $routeParams.tableId,
         uuids = [];
 
-    Entity.Get.go({id: table}, function(data) {
+    Tables.Get.go({id: table}, function(data) {
         //console.log("table data", data);
         if (data.error) {
             $scope.showErrorMsg(data.error);

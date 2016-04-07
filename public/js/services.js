@@ -31,21 +31,18 @@ accessSettingsServices.factory('spinnerControl', function() {
     }
 });
 
-accessSettingsServices.factory('Entity', ['$resource',
+accessSettingsServices.factory('Tables', ['$resource',
     function($resource) {
         return {
-            List: $resource('/entities', {}, { go: { method:'POST', isArray: true }}),
-            Get: $resource('/get_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
-            //Create: $resource('/create_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
-            //Update: $resource('/update_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id', name: '@name', props: '@props'} }}),
-            //Remove: $resource('/remove_entity', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
+            List: $resource('/entities/list', {}, { go: { method:'POST', isArray: true }}),
+            Get: $resource('/tables/get', {}, { go: { method:'POST', isArray: false, params : {id: '@id'} }})
         };
     }]);
 
 accessSettingsServices.factory('DataBase', ['$resource',
     function($resource) {
         return {
-            GetTables: $resource('/tables', {}, { go: { method:'POST', isArray: true }}),
+            GetTables: $resource('/tables/list', {}, { go: { method:'POST', isArray: true }}),
             GetViews: $resource('/views', {}, { go: { method:'POST', isArray: true }}),
             Protect: $resource('/protect', {}, { go: { method:'POST', isArray: false, params : {table: '@table'} }})
         };
