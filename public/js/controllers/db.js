@@ -91,7 +91,7 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
             if (data.error) {
                 $scope.showErrorMsg(data.error);
             } else {
-                $scope.showSuccessMsg(data.token);
+                $scope.showSuccessMsg("Успешно");
                 token = data.token;
             }
         });
@@ -179,7 +179,7 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
 
             var params = {};
             params.table = $scope.table;
-            params.token = token||$scope.token||"";
+            params.token = token||"";
 
             Data.Get.go({params: JSON.stringify(params)}, function(data) {
                 console.log("get data", data);
@@ -199,7 +199,7 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
 
             var params = {};
             params.table = $scope.table;
-            params.token = token||$scope.token||"";
+            params.token = token||"";
             params.columns = ["val"];
             params.values = ["220"];
 

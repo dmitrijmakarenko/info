@@ -164,6 +164,8 @@ func (c UsersCntl) Get(id string) revel.Result {
 func (c UsersCntl) Update(id string, data string) revel.Result {
 	ret := make(map[string]string)
 	var settings UserSettings
+	changePass := false
+
 	err := json.Unmarshal([]byte(data), &settings)
 	if err != nil {
 		ret["error"] = "settings error format"
@@ -173,7 +175,14 @@ func (c UsersCntl) Update(id string, data string) revel.Result {
 	if id == "!new" {
 		_, err = DB.Exec("INSERT INTO "+TABLE_USERS+"(id, pass, realname, position_user) VALUES ($1, crypt($2, gen_salt('bf')), $3, $4)", settings.Id, settings.Password, settings.Name, settings.Position)
 	} else {
-		_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, pass=crypt($3, gen_salt('bf')), realname=$4, position_user=$5 WHERE id=$1", id, settings.Id, settings.Password, settings.Name, settings.Position)
+		if settings.Password != "" {
+			changePass = true
+		}
+		if changePass {
+			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, pass=crypt($3, gen_salt('bf')), realname=$4, position_user=$5 WHERE id=$1", id, settings.Id, settings.Password, settings.Name, settings.Position)
+		} else {
+			_, err = DB.Exec("UPDATE "+TABLE_USERS+" SET id=$2, realname=$3, position_user=$4 WHERE id=$1", id, settings.Id, settings.Name, settings.Position)
+		}
 	}
 	if err != nil {
 		ret["error"] = err.Error()
