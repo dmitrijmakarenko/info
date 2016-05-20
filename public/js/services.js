@@ -93,7 +93,9 @@ accessSettingsServices.factory('Test', ['$resource',
             CopyToFile: $resource('/test/copytofile', {}, { go: { method:'POST', isArray: false }}),
             CopyFromFile: $resource('/test/copyfromfile', {}, { go: { method:'POST', isArray: false }}),
             SelectDataNormal: $resource('/test/selectdatanormal', {}, { go: { method:'POST', isArray: false }}),
-            SelectDataSecure: $resource('/test/selectdatasecure', {}, { go: { method:'POST', isArray: false }})
+            SelectDataSecure: $resource('/test/selectdatasecure', {}, { go: { method:'POST', isArray: false }}),
+            UpdateDataNormal: $resource('/test/updatedatanormal', {}, { go: { method:'POST', isArray: false }}),
+            UpdateDataSecure: $resource('/test/updatedatasecure', {}, { go: { method:'POST', isArray: false }})
         };
     }]);
 

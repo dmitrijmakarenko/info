@@ -226,4 +226,16 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         });
     };
 
+    $scope.testUpdateNormal = function() {
+        Test.UpdateDataNormal.go(function(data) {
+            console.log("testUpdateNormal", data);
+        });
+    };
+
+    $scope.testUpdateSecure = function() {
+        Test.UpdateDataSecure.go(function(data) {
+            console.log("testUpdateSecure", data);
+        });
+    };
+
 });
