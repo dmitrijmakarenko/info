@@ -214,4 +214,16 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         }
     };
 
+    $scope.testSelectNormal = function() {
+        Test.SelectDataNormal.go(function(data) {
+            console.log("testSelectNormal", data);
+        });
+    };
+
+    $scope.testSelectSecure = function() {
+        Test.SelectDataSecure.go(function(data) {
+            console.log("testSelectSecure", data);
+        });
+    };
+
 });

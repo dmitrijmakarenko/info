@@ -3,6 +3,8 @@ package controllers
 import (
 	"github.com/robfig/revel"
 	"database/sql"
+	"strconv"
+	"time"
 )
 
 type TestCntl struct {
@@ -180,6 +182,48 @@ func (c TestCntl) CopyFromFile() revel.Result {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
+
+	return c.RenderJson(ret)
+}
+
+func (c TestCntl) SelectDataNormal() revel.Result {
+	ret := make(map[string]string)
+	var err error
+	revel.INFO.Println("Start test select normal")
+
+	_, err = DB.Exec("DROP TABLE IF EXISTS test_data")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
+	for i := 0; i < 100; i++ {
+		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+	}
+	start := time.Now()
+	_, err = DB.Query("SELECT * FROM test_data")
+	elapsed := time.Since(start)
+	revel.INFO.Println("elapsed time", elapsed.Seconds());
+
+
+	return c.RenderJson(ret)
+}
+
+func (c TestCntl) SelectDataSecure() revel.Result {
+	ret := make(map[string]string)
+	var err error
+	revel.INFO.Println("Start test select secure");
+
+	_, err = DB.Exec("DROP TABLE IF EXISTS test_data")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+
 
 	return c.RenderJson(ret)
 }
