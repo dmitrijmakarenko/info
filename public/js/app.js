@@ -41,10 +41,10 @@ accessSettings.config(['$routeProvider',
                 templateUrl: 'public/templates/group.html',
                 controller: 'groupCntl'
             }).
-            when('/vcs', {
-                templateUrl: 'public/templates/vcs.html',
-                controller: 'vcsCntl'
-            }).
+            //when('/vcs', {
+            //    templateUrl: 'public/templates/vcs.html',
+            //    controller: 'vcsCntl'
+            //}).
             when('/test', {
                 templateUrl: 'public/templates/test.html',
                 controller: 'testCntl'

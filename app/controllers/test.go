@@ -186,6 +186,113 @@ func (c TestCntl) CopyFromFile() revel.Result {
 	return c.RenderJson(ret)
 }
 
+func GetTest(table string, token string) DataRecords {
+	var ret DataRecords
+	var p DataGetParams
+	var hasRights bool
+	var err error
+
+	p.Table = table;
+	p.Token = token;
+
+	//check user
+	var user string
+	revel.INFO.Println("time started")
+	start := time.Now()
+	err = DB.QueryRow("SELECT COALESCE(acs_get_user($1), '')", p.Token).Scan(&user)
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ret
+	}
+
+	if user == "" {
+		revel.ERROR.Println("authorization error")
+		return ret
+	}
+
+	//get rights
+	rows, err := DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='r'", user)
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ret
+	}
+	var rules []interface{}
+	for rows.Next() {
+		var rule string
+		err := rows.Scan(&rule)
+		if err != nil {
+			revel.ERROR.Println(err.Error())
+			return ret
+		} else {
+			rules = append(rules, rule)
+		}
+	}
+	if len(rules) > 0 {
+		hasRights = true
+	} else {
+		hasRights = false
+	}
+	var rulesList string
+	rulesList += "("
+	for i, _ := range rules {
+		rulesList += "$" + strconv.Itoa(i+1)
+		if (i != len(rules) - 1) {
+			rulesList += ", "
+		}
+	}
+	rulesList += ")"
+
+	//sql query
+	var stmt *sql.Stmt
+	if (hasRights) {
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL OR security_rule IN " + rulesList)
+	} else {
+		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL")
+	}
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ret
+	}
+	if (hasRights) {
+		rows, err = stmt.Query(rules...)
+	} else {
+		rows, err = stmt.Query()
+	}
+	if err != nil {
+		revel.ERROR.Println(err.Error())
+		return ret
+	}
+	elapsed := time.Since(start)
+	revel.INFO.Println("elapsed time", elapsed.Seconds());
+
+	columnNames, err := rows.Columns()
+	ret.Columns = columnNames
+	var retRows [][]string
+	for rows.Next() {
+		var retRow []string
+		columnPointers := make([]interface{}, len(columnNames))
+		for i := 0; i < len(columnNames); i++ {
+			columnPointers[i] = new(sql.RawBytes)
+		}
+		if err := rows.Scan(columnPointers...); err != nil {
+			revel.ERROR.Println(err.Error())
+			return ret
+		}
+		for i := 0; i < len(columnNames); i++ {
+			if rb, ok := columnPointers[i].(*sql.RawBytes); ok {
+				retRow = append(retRow, string(*rb))
+			} else {
+				revel.ERROR.Println("erorr get row")
+				return ret
+			}
+		}
+		retRows = append(retRows, retRow)
+	}
+	ret.Rows = retRows
+
+	return ret
+}
+
 func (c TestCntl) SelectDataNormal() revel.Result {
 	ret := make(map[string]string)
 	var err error
@@ -197,13 +304,14 @@ func (c TestCntl) SelectDataNormal() revel.Result {
 		return c.RenderJson(ret)
 	}
 	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 500; i++ {
 		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
 		if err != nil {
 			ret["error"] = err.Error()
 			return c.RenderJson(ret)
 		}
 	}
+	revel.INFO.Println("time started")
 	start := time.Now()
 	_, err = DB.Query("SELECT * FROM test_data")
 	elapsed := time.Since(start)
@@ -223,6 +331,21 @@ func (c TestCntl) SelectDataSecure() revel.Result {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
+
+	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
+	for i := 0; i < 500; i++ {
+		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+	}
+	_, err = DB.Query("SELECT acs_vcs_table_add('test_data')")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	_ = GetTest("test_data", "214364c4-7eba-41db-8257-9c75fcbe243d")
 
 
 	return c.RenderJson(ret)
