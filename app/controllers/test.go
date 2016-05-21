@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"strconv"
 	"time"
+	"os"
+	"errors"
 )
 
 type TestCntl struct {
@@ -69,17 +71,6 @@ func (c TestCntl) Reset() revel.Result {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
-
-	//insert data
-	/*_, err = dbGeneral.Exec("INSERT INTO persons VALUES(1, 'Иванов', 'Иван', 'ул.Парфенова', 'г.Тула')")
-	_, err = dbGeneral.Exec("INSERT INTO persons VALUES(2, 'Петров', 'Петр', 'ул.Ленина', 'г.Томск')")
-	_, err = dbGeneral.Exec("INSERT INTO clients VALUES(1, 'Автозапчасти', 'г.Москва', '8 (906) 531-85-86')")
-	_, err = dbGeneral.Exec("INSERT INTO clients VALUES(2, 'Продукты', 'г.Тула', '8 (906) 531-85-86')")*/
-
-	/*_, err = dbStat1.Exec("INSERT INTO persons VALUES(1, 'Иванов', 'Иван', 'ул.Парфенова', 'г.Тула')")
-	_, err = dbStat1.Exec("INSERT INTO persons VALUES(2, 'Петров', 'Петр', 'ул.Ленина', 'г.Томск')")
-	_, err = dbStat1.Exec("INSERT INTO clients VALUES(1, 'Автозапчасти', 'г.Москва', '8 (906) 531-85-86')")
-	_, err = dbStat1.Exec("INSERT INTO clients VALUES(2, 'Продукты', 'г.Тула', '8 (906) 531-85-86')")*/
 
 	return c.RenderJson(ret)
 }
@@ -188,8 +179,7 @@ func (c TestCntl) CopyFromFile() revel.Result {
 	return c.RenderJson(ret)
 }
 
-func GetTest(table string, token string) DataRecords {
-	var ret DataRecords
+func GetTest(table string, token string) (error, time.Duration) {
 	var p DataGetParams
 	var hasRights bool
 	var err error
@@ -200,31 +190,27 @@ func GetTest(table string, token string) DataRecords {
 	//check user
 	var user string
 	revel.INFO.Println("[TEST] start query...")
-	start := time.Now()
 	err = DB.QueryRow("SELECT COALESCE(acs_get_user($1), '')", p.Token).Scan(&user)
 	if err != nil {
-		revel.ERROR.Println(err.Error())
-		return ret
+		return err, 0
 	}
 
 	if user == "" {
-		revel.ERROR.Println("authorization error")
-		return ret
+		revel.ERROR.Println("[TEST] authorization error...")
+		return errors.New("authorization error"), 0
 	}
 
 	//get rights
 	rows, err := DB.Query("SELECT DISTINCT security_rule FROM "+TABLE_RULES_DATA+" WHERE rule_user=$1 AND rule_action='r'", user)
 	if err != nil {
-		revel.ERROR.Println(err.Error())
-		return ret
+		return err, 0
 	}
 	var rules []interface{}
 	for rows.Next() {
 		var rule string
 		err := rows.Scan(&rule)
 		if err != nil {
-			revel.ERROR.Println(err.Error())
-			return ret
+			return err, 0
 		} else {
 			rules = append(rules, rule)
 		}
@@ -245,6 +231,7 @@ func GetTest(table string, token string) DataRecords {
 	rulesList += ")"
 
 	//sql query
+	start := time.Now()
 	var stmt *sql.Stmt
 	if (hasRights) {
 		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL OR security_rule IN " + rulesList)
@@ -252,8 +239,7 @@ func GetTest(table string, token string) DataRecords {
 		stmt, err = DB.Prepare("SELECT "+p.Table+".*  FROM "+p.Table+" LEFT OUTER JOIN acs.rule_record AS rules ON ("+p.Table+".uuid_record = rules.uuid_record) WHERE security_rule IS NULL")
 	}
 	if err != nil {
-		revel.ERROR.Println(err.Error())
-		return ret
+		return err, 0
 	}
 	if (hasRights) {
 		rows, err = stmt.Query(rules...)
@@ -261,38 +247,12 @@ func GetTest(table string, token string) DataRecords {
 		rows, err = stmt.Query()
 	}
 	if err != nil {
-		revel.ERROR.Println(err.Error())
-		return ret
+		return err, 0
 	}
 	elapsed := time.Since(start)
-	revel.INFO.Println("[TEST] elapsed time", elapsed.Seconds());
+	revel.INFO.Println("[TEST] elapsed time", elapsed.Seconds())
 
-	columnNames, err := rows.Columns()
-	ret.Columns = columnNames
-	var retRows [][]string
-	for rows.Next() {
-		var retRow []string
-		columnPointers := make([]interface{}, len(columnNames))
-		for i := 0; i < len(columnNames); i++ {
-			columnPointers[i] = new(sql.RawBytes)
-		}
-		if err := rows.Scan(columnPointers...); err != nil {
-			revel.ERROR.Println(err.Error())
-			return ret
-		}
-		for i := 0; i < len(columnNames); i++ {
-			if rb, ok := columnPointers[i].(*sql.RawBytes); ok {
-				retRow = append(retRow, string(*rb))
-			} else {
-				revel.ERROR.Println("erorr get row")
-				return ret
-			}
-		}
-		retRows = append(retRows, retRow)
-	}
-	ret.Rows = retRows
-
-	return ret
+	return nil, elapsed
 }
 
 func UpdateTest(table string, token string) DataRecords {
@@ -378,22 +338,17 @@ func UpdateTest(table string, token string) DataRecords {
 	return ret
 }
 
-func (c TestCntl) SelectDataNormal() revel.Result {
-	ret := make(map[string]string)
+func SelectDataStandartProcess(cntRecords int) (error, time.Duration) {
 	var err error
-	revel.INFO.Println("[TEST] select unsecure")
-
 	_, err = DB.Exec("DROP TABLE IF EXISTS test_data")
 	if err != nil {
-		ret["error"] = err.Error()
-		return c.RenderJson(ret)
+		return err, 0
 	}
 	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
-	for i := 0; i < CNTRECORDS; i++ {
+	for i := 0; i < cntRecords; i++ {
 		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
 		if err != nil {
-			ret["error"] = err.Error()
-			return c.RenderJson(ret)
+			return err, 0
 		}
 	}
 	revel.INFO.Println("[TEST] start query...")
@@ -401,7 +356,58 @@ func (c TestCntl) SelectDataNormal() revel.Result {
 	_, err = DB.Query("SELECT * FROM test_data")
 	elapsed := time.Since(start)
 	revel.INFO.Println("[TEST] elapsed time", elapsed.Seconds());
+	return err, elapsed
+}
 
+func SelectDataSecureProcess(cntRecords int) (error, time.Duration) {
+	var err error
+	_, err = DB.Exec("DROP TABLE IF EXISTS test_data")
+	if err != nil {
+		return err, 0
+	}
+	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
+	for i := 0; i < cntRecords; i++ {
+		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
+		if err != nil {
+			return err, 0
+		}
+	}
+	_, err = DB.Query("SELECT acs_vcs_table_add('test_data')")
+	if err != nil {
+		return err, 0
+	}
+	err, elapsed := GetTest("test_data", "25b9acf4-3694-4739-830e-6df25e80fe33")
+	if err != nil {
+		return err, 0
+	}
+
+	return err, elapsed
+}
+
+func (c TestCntl) SelectDataNormal() revel.Result {
+	ret := make(map[string]string)
+	var err error
+	var resTest string
+	revel.INFO.Println("[TEST] select unsecure")
+
+	file, err := os.Create("gocode/src/info/tests/selectStandart.txt")
+	if err != nil {
+		ret["error"] = err.Error()
+		return c.RenderJson(ret)
+	}
+	defer file.Close()
+
+	for i := 100; i <= 500; i += 100 {
+		err, elapsed := SelectDataStandartProcess(i)
+		if err != nil {
+			ret["error"] = err.Error()
+			return c.RenderJson(ret)
+		}
+		resTest = strconv.Itoa(i) + " " + strconv.FormatFloat(elapsed.Seconds(), 'f', 10, 64)
+		file.WriteString(resTest)
+		file.WriteString("\n")
+	}
+	revel.INFO.Println("[TEST] test done.")
 
 	return c.RenderJson(ret)
 }
@@ -409,29 +415,27 @@ func (c TestCntl) SelectDataNormal() revel.Result {
 func (c TestCntl) SelectDataSecure() revel.Result {
 	ret := make(map[string]string)
 	var err error
-	revel.INFO.Println("[TEST] select secure");
+	var resTest string
+	revel.INFO.Println("[TEST] select secure")
 
-	_, err = DB.Exec("DROP TABLE IF EXISTS test_data")
+	file, err := os.Create("gocode/src/info/tests/selectSecure.txt")
 	if err != nil {
 		ret["error"] = err.Error()
 		return c.RenderJson(ret)
 	}
+	defer file.Close()
 
-	_, err = DB.Exec("CREATE TABLE test_data(val_id int, field1 text, field2 text, field3 text, field4 text, field5 text)")
-	for i := 0; i < CNTRECORDS; i++ {
-		_, err = DB.Exec("INSERT INTO test_data VALUES($1,$2,$3,$4,$5,$6)", i, "d1_"+strconv.Itoa(i), "d2_"+strconv.Itoa(i), "d3_"+strconv.Itoa(i), "d4_"+strconv.Itoa(i), "d5_"+strconv.Itoa(i))
+	for i := 100; i <= 500; i += 100 {
+		err, elapsed := SelectDataSecureProcess(i)
 		if err != nil {
 			ret["error"] = err.Error()
 			return c.RenderJson(ret)
 		}
+		resTest = strconv.Itoa(i) + " " + strconv.FormatFloat(elapsed.Seconds(), 'f', 10, 64)
+		file.WriteString(resTest)
+		file.WriteString("\n")
 	}
-	_, err = DB.Query("SELECT acs_vcs_table_add('test_data')")
-	if err != nil {
-		ret["error"] = err.Error()
-		return c.RenderJson(ret)
-	}
-	_ = GetTest("test_data", "214364c4-7eba-41db-8257-9c75fcbe243d")
-
+	revel.INFO.Println("[TEST] test done.")
 
 	return c.RenderJson(ret)
 }

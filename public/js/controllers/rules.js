@@ -67,6 +67,14 @@ accessSettings.controller('ruleCntl', function ($scope, $routeParams, Rules) {
         }
     };
 
+    $scope.getOperation = function(op) {
+        if (op == "r") {
+            return "Просмотр";
+        } else {
+            return "Изменение";
+        }
+    };
+
     $scope.selectObject = function(select) {
         $scope.selectUsers = select;
     };

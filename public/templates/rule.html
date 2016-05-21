@@ -20,10 +20,12 @@
             <div class="dropdown-wrap"><dropdown placeholder="Выберите" list="operations" property="text" selected="operationSelected"></dropdown></div>
         </div>
         <div class="add-opt link" ng-click="addOption()">Добавить</div>
-        <div class="option" ng-repeat="action in actions">
-            <div>{{getName(action.isUser, action.object)}}</div>
-            <div>{{action.operation}}</div>
-            <div class="link" ng-click="removeOption($index)">Удалить</div>
+        <div class="options-items">
+            <div class="option" ng-repeat="action in actions">
+                <div class="name">{{getName(action.isUser, action.object)}}</div>
+                <div class="action">{{getOperation(action.operation)}}</div>
+                <div class="link" ng-click="removeOption($index)">Удалить</div>
+            </div>
         </div>
     </div>
     <div class="btn-bar">
