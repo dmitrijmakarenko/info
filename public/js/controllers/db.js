@@ -238,4 +238,16 @@ accessSettings.controller('testCntl', function ($scope, Data, Test) {
         });
     };
 
+    $scope.testDeleteNormal = function() {
+        Test.DeleteDataNormal.go(function(data) {
+            console.log("testDeleteNormal", data);
+        });
+    };
+
+    $scope.testDeleteSecure = function() {
+        Test.DeleteDataSecure.go(function(data) {
+            console.log("testDeleteSecure", data);
+        });
+    };
+
 });

@@ -95,7 +95,9 @@ accessSettingsServices.factory('Test', ['$resource',
             SelectDataNormal: $resource('/test/selectdatanormal', {}, { go: { method:'POST', isArray: false }}),
             SelectDataSecure: $resource('/test/selectdatasecure', {}, { go: { method:'POST', isArray: false }}),
             UpdateDataNormal: $resource('/test/updatedatanormal', {}, { go: { method:'POST', isArray: false }}),
-            UpdateDataSecure: $resource('/test/updatedatasecure', {}, { go: { method:'POST', isArray: false }})
+            UpdateDataSecure: $resource('/test/updatedatasecure', {}, { go: { method:'POST', isArray: false }}),
+            DeleteDataNormal: $resource('/test/deletedatanormal', {}, { go: { method:'POST', isArray: false }}),
+            DeleteDataSecure: $resource('/test/deletedatasecure', {}, { go: { method:'POST', isArray: false }})
         };
     }]);
 
